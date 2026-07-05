@@ -217,6 +217,7 @@ body {
   border-radius: var(--radius-xl);
   font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
 }
 .btn-invite {
   background: transparent;
@@ -228,6 +229,7 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .icon-btn {
   width: 40px;
@@ -755,4 +757,121 @@ body {
 /* Utility */
 .hide {
   display: none !important;
+}
+
+/* ============================================================
+   RESPONSIVE LAYOUT (UI/UX Pro Max compliant)
+   ============================================================ */
+
+/* TABLET & MOBILE (<1024px) */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr; /* Stack right panel below board */
+  }
+  
+  #header {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+  }
+  
+  .search-bar {
+    width: 200px;
+  }
+  
+  #main {
+    padding: 24px 16px;
+  }
+}
+
+/* MOBILE (<768px) */
+@media (max-width: 768px) {
+  /* Allow vertical scrolling on mobile */
+  body {
+    overflow: auto;
+  }
+  #app {
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  #main {
+    padding: 16px 12px;
+    gap: 16px;
+    overflow-y: visible;
+  }
+
+  /* SIDEBAR AS OVERLAY */
+  #sidebar {
+    position: fixed;
+    top: 12px;
+    left: -110%; /* Hidden by default */
+    bottom: 12px;
+    height: calc(100vh - 24px);
+    z-index: 1000;
+    width: 260px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0;
+  }
+  
+  #sidebar.mobile-open {
+    left: 12px;
+  }
+  
+  /* Remove collapsed margin trick on mobile */
+  #sidebar.collapsed {
+    margin-right: 0;
+  }
+
+  /* HEADER */
+  #header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .search-bar {
+    flex: 1;
+    width: auto;
+  }
+
+  /* Hide non-essential buttons on mobile to save space */
+  .btn-invite, .user-profile .plan, .user-profile i {
+    display: none !important;
+  }
+  
+  /* BOARD CONTROLS */
+  .board-controls {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px;
+  }
+  
+  .b-ctrl-btn {
+    flex: 1;
+    min-width: 40px; /* Allow wrapping */
+  }
+  
+  #btn-cam-auto-group {
+    margin-left: 0 !important;
+    flex: 1;
+    min-width: 140px;
+  }
+  
+  /* UPLOAD OVERLAY */
+  .upload-box {
+    padding: 30px;
+    margin: 16px;
+    width: calc(100% - 32px);
+  }
 }

@@ -357,6 +357,15 @@ function initThree() {
   camera.position.set(0, 72, 56);
   camera.lookAt(0, 0, 10);
 
+  window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('mobile-open');
+    } else {
+        sidebar.classList.toggle('collapsed');
+    }
+  };
+
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.domElement.id = 'three-canvas';
   renderer.setSize(container.clientWidth, container.clientHeight, false); // false = let CSS handle display size
@@ -391,7 +400,19 @@ function initThree() {
     }
   });
 
-  renderer.domElement.addEventListener('dblclick', () => {
+  let canvasLastTap = 0;
+  function handleCanvasDblTapClick(e) {
+      if (e && e.type === 'touchend') {
+          const currentTime = new Date().getTime();
+          const tapLength = currentTime - canvasLastTap;
+          if (tapLength < 400 && tapLength > 0) {
+              // Valid double tap
+          } else {
+              canvasLastTap = currentTime;
+              return;
+          }
+      }
+      
     controls.enabled = false;
     
     const startCamPos = camera.position.clone();
@@ -421,7 +442,10 @@ function initThree() {
     }
     
     animateReset();
-  });
+  }
+  
+  renderer.domElement.addEventListener('dblclick', handleCanvasDblTapClick);
+  renderer.domElement.addEventListener('touchend', handleCanvasDblTapClick, { passive: false });
 
   createBoardMesh();
 
@@ -1678,8 +1702,21 @@ function togglePlay() {
 const kpiEl = document.getElementById('replayer-move-kpi');
 if (kpiEl) {
     kpiEl.style.cursor = 'text';
-    kpiEl.title = 'Double-click to jump to move';
-    kpiEl.addEventListener('dblclick', function() {
+    kpiEl.title = 'Double-click/tap to jump to move';
+    
+    let lastTap = 0;
+    function handleDblTapClick(e) {
+        if (e && e.type === 'touchend') {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 400 && tapLength > 0) {
+                e.preventDefault();
+            } else {
+                lastTap = currentTime;
+                return;
+            }
+        }
+        
         if (kpiEl._editing) return;
         kpiEl._editing = true;
         
@@ -1722,7 +1759,9 @@ if (kpiEl) {
             }
         });
         input.addEventListener('blur', done);
-    });
+    }
+    kpiEl.addEventListener('dblclick', handleDblTapClick);
+    kpiEl.addEventListener('touchend', handleDblTapClick, { passive: false });
 }
 
 document.getElementById('btn-replay-first').onclick = () => { if(playInterval) togglePlay(); goToMove(-1); };

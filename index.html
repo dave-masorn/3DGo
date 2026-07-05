@@ -73,20 +73,12 @@ window.addEventListener('unhandledrejection', function(event) {
     <!-- HEADER -->
     <header id="header">
       <div style="display: flex; align-items: center; gap: 16px;">
-        <button class="icon-btn" onclick="document.getElementById('sidebar').classList.toggle('collapsed')" title="Toggle Sidebar">
+        <button class="icon-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
           <i class="ph ph-sidebar-simple" style="font-size: 18px;"></i>
         </button>
-        <div class="search-bar">
-          <i class="ph ph-magnifying-glass" style="color:var(--text-muted)"></i>
-          <input type="text" placeholder="Search games, players, or lessons...">
-        </div>
       </div>
       
       <div class="header-actions">
-        <div id="perf-monitor" style="font-size: 11px; font-family: monospace; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; padding-right: 12px; border-right: 1px solid var(--panel-border);">
-          <span id="fps-counter">-- FPS</span>
-          <span id="ms-counter">-- ms</span>
-        </div>
         <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--panel-border); color: var(--text-muted);" onclick="toggleMaxVFX()">Max VFX: OFF</button>
         <button class="btn-new-game" onclick="document.getElementById('file-input').click()">New Game (SGF)</button>
         <button class="btn-invite"><i class="ph ph-user-plus"></i> Invite</button>
@@ -163,13 +155,19 @@ window.addEventListener('unhandledrejection', function(event) {
       <!-- CENTER COL (3D Board & Diagnostics) -->
       <div class="col-center">
         <div class="widget" style="flex:1; display:flex; flex-direction:column; padding:16px;">
-          <div class="board-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="board-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 12px;">
             <div class="board-status" style="display:flex; align-items:center; gap:12px;">
               <div class="status-pill">Game in Progress</div>
-              <div class="komi-pill">Komi 6.5</div>
-              <div class="move-counter" style="margin:0;">Move <span id="board-move-num">0</span></div>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; white-space: nowrap;">Move: <span id="replayer-move-kpi">0 / 0</span></span>
             </div>
-            <button class="btn-settings"><i class="ph ph-gear"></i> Settings</button>
+            
+            <div style="display:flex; align-items:center; gap:16px;">
+              <div id="perf-monitor" style="font-size: 11px; font-family: monospace; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; padding-right: 16px; border-right: 1px solid var(--panel-border);">
+                <span id="fps-counter">-- FPS</span>
+                <span id="ms-counter">-- ms</span>
+              </div>
+              <button class="btn-settings"><i class="ph ph-gear"></i> Settings</button>
+            </div>
           </div>
           
           <div class="board-container" id="three-container">
@@ -192,7 +190,6 @@ window.addEventListener('unhandledrejection', function(event) {
             
             <!-- Center KPI & Play -->
             <div style="display: flex; align-items: center; gap: 12px; margin: 0 8px;">
-                <span id="replayer-move-kpi" style="font-size: 13px; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums;">0 / 0</span>
                 <div class="b-ctrl-btn active" id="btn-play" onclick="togglePlay()">
                   <i class="ph ph-play" id="play-icon"></i>
                   <div style="display:flex; align-items:center; gap:2px;">
