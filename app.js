@@ -7,6 +7,8 @@ let moveHistory = [];
 let currentMoveIndex = -1;
 let currentRippleMesh = null; // Reused for the 3D aura system
 let auraTexture = null;
+let pendingMove = null;
+let pendingRingMesh = null;
 
 function getAuraTexture() {
   if (!auraTexture) {
@@ -24,6 +26,14 @@ function getAuraTexture() {
   }
   return auraTexture;
 }
+let _aiColor = 'B'; // which color the AI plays
+function getAIColor() { return _aiColor; }
+window.setAIColor = function(color, btn) {
+  _aiColor = color;
+  document.querySelectorAll('.ai-color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+};
+
 let capturedByBlack = 0;
 let capturedByWhite = 0;
 let captureHistory = [];
@@ -86,8 +96,8 @@ window.toggleAutoCam = function() {
 function updateAutoCamTarget(moveIdx) {
   if (moveIdx < 0 || moveIdx >= moveHistory.length) return;
   
-  // When reaching the end of the game, smoothly return to the initial overview position
-  if (moveIdx === moveHistory.length - 1) {
+  // When reaching the end of the replay, smoothly return to the initial overview position
+  if (!playModeEnabled && moveIdx === moveHistory.length - 1) {
       autoCamTarget.set(0, 0, 10);
       autoCamPos.set(0, 72, 56);
       return;
@@ -389,13 +399,30 @@ function initThree() {
   controls.update();
   controls.saveState();
 
+  const ringGeom = new THREE.TorusGeometry(STONE_R * 0.8, STONE_R * 0.1, 16, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.8 });
+  pendingRingMesh = new THREE.Mesh(ringGeom, ringMat);
+  pendingRingMesh.rotation.x = Math.PI / 2;
+  pendingRingMesh.position.y = STONE_R * 0.3;
+  pendingRingMesh.visible = false;
+  scene.add(pendingRingMesh);
+
+  let didCameraMove = false;
   controls.addEventListener('start', () => {
     manualCamOverride = true;
+    didCameraMove = false;
+  });
+  
+  controls.addEventListener('change', () => {
+    didCameraMove = true;
   });
   
   controls.addEventListener('end', () => {
-    if (autoCamEnabled && manualCamOverride) {
-      // If user stops dragging, disable auto-cam so they can hold the angle they picked
+    if (!didCameraMove) {
+      // It was just a click, don't break the auto-cam override loop
+      manualCamOverride = false;
+    } else if (autoCamEnabled && manualCamOverride) {
+      // If user stops dragging (actual movement), disable auto-cam so they can hold the angle they picked
       toggleAutoCam();
     }
   });
@@ -448,6 +475,15 @@ function initThree() {
   renderer.domElement.addEventListener('touchend', handleCanvasDblTapClick, { passive: false });
 
   createBoardMesh();
+
+  window.addEventListener('resize', () => {
+    if (!container || !renderer || !camera) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  });
 
   // Right-click toggle-drag to pan (following demo/right-click-move-obj.html)
   let isPanning = false;
@@ -524,6 +560,7 @@ function initThree() {
   });
 
   // Removed ResizeObserver to prevent infinite layout thrashing loops
+  if (typeof setupBoardClick === 'function') setupBoardClick();
   animate();
 }
 
@@ -623,8 +660,11 @@ function generateBoardTexture() {
 
   // Coordinate labels
   ctx.save();
-  ctx.font = 'bold 32px "SF Mono", "Menlo", "Consolas", monospace'; 
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.font = '48px "SF Pro Display", "Inter", "Helvetica Neue", sans-serif'; 
+  ctx.fillStyle = 'rgba(60, 30, 0, 0.75)'; // Dark Brown etched look
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 1;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   
@@ -661,6 +701,74 @@ function generateBoardTexture() {
   return tex;
 }
 
+
+let activeCoordCanvas, activeCoordCtx, activeCoordTexture, activeCoordMesh;
+let floatingCoordCanvas, floatingCoordCtx, floatingCoordTexture, floatingCoordSprite;
+function updateActiveCoordinates(c, r, player) {
+  if (!activeCoordCtx) return;
+  const S = 4096;
+  activeCoordCtx.clearRect(0, 0, S, S);
+  
+  if (c === -1 || r === -1) {
+    activeCoordTexture.needsUpdate = true;
+    if (floatingCoordSprite) floatingCoordSprite.visible = false;
+    return;
+  }
+  if (floatingCoordSprite) floatingCoordSprite.visible = true;
+  
+  const GRID_LINES = boardSize;
+  const PAD = S * 2 / (GRID_LINES + 3);
+  const gridPx = S - PAD * 2;
+  const step = gridPx / (GRID_LINES - 1);
+  function lp(i) { return PAD + i * step; }
+  
+  activeCoordCtx.save();
+  activeCoordCtx.font = 'bold 64px "SF Pro Display", "Inter", "Helvetica Neue", sans-serif'; 
+  activeCoordCtx.fillStyle = '#4ade80'; // Bright Green
+  activeCoordCtx.shadowColor = '#22c55e'; // Green glow
+  activeCoordCtx.shadowBlur = 20;
+  activeCoordCtx.textAlign = 'center';
+  activeCoordCtx.textBaseline = 'middle';
+  
+  const colLetters = 'ABCDEFGHJKLMNOPQRST';
+  
+  const charC = colLetters[c];
+  activeCoordCtx.fillText(charC, lp(c), S - PAD * 0.3);
+  activeCoordCtx.fillText(charC, lp(c), PAD * 0.3);
+  
+  activeCoordCtx.textAlign = 'right';
+  const charR = String(GRID_LINES - r);
+  activeCoordCtx.fillText(charR, PAD * 0.7, lp(r));
+  activeCoordCtx.textAlign = 'left';
+  activeCoordCtx.fillText(charR, S - PAD * 0.7, lp(r));
+  activeCoordCtx.restore();
+  activeCoordTexture.needsUpdate = true;
+
+  // Floating Sprite Update
+  if (floatingCoordCtx) {
+    floatingCoordCtx.clearRect(0, 0, 512, 256);
+    floatingCoordCtx.font = 'bold 112px "SF Pro Display", "Inter", sans-serif'; 
+    if (player === 'W') {
+      floatingCoordCtx.fillStyle = '#16a34a'; 
+      floatingCoordCtx.shadowColor = 'rgba(255,255,255,0.9)'; 
+      floatingCoordCtx.shadowBlur = 15;
+    } else {
+      floatingCoordCtx.fillStyle = '#4ade80'; 
+      floatingCoordCtx.shadowColor = 'rgba(0,0,0,0.9)'; 
+      floatingCoordCtx.shadowBlur = 15;
+    }
+    floatingCoordCtx.textAlign = 'center';
+    floatingCoordCtx.textBaseline = 'middle';
+    
+    const text = charC + charR;
+    floatingCoordCtx.fillText(text, 256, 128);
+    floatingCoordTexture.needsUpdate = true;
+    
+    const worldX = c * STEP_SIZE - GRID_OFFSET;
+    const worldZ = r * STEP_SIZE - GRID_OFFSET;
+    floatingCoordSprite.position.set(worldX, 5.3, worldZ);
+  }
+}
 
 // ─── Board Mesh ────────────────────────────────────────────────────────────────
 function createBoardMesh() {
@@ -846,6 +954,50 @@ function createBoardMesh() {
   shadowMesh.rotation.x = -Math.PI / 2;
   shadowMesh.position.y = -SLAB_H - 10;
   scene.add(shadowMesh);
+
+  // ── Active Coordinates Mesh ──
+  activeCoordCanvas = document.createElement('canvas');
+  activeCoordCanvas.width = activeCoordCanvas.height = 4096;
+  activeCoordCtx = activeCoordCanvas.getContext('2d');
+  activeCoordTexture = new THREE.CanvasTexture(activeCoordCanvas);
+  activeCoordTexture.colorSpace = THREE.SRGBColorSpace;
+  activeCoordTexture.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 4;
+  
+  const activeCoordMat = new THREE.MeshBasicMaterial({
+    map: activeCoordTexture,
+    transparent: true,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3
+  });
+  activeCoordMesh = new THREE.Mesh(new THREE.PlaneGeometry(SLAB_W, SLAB_W), activeCoordMat);
+  activeCoordMesh.renderOrder = 999;
+  activeCoordMesh.rotation.x = -Math.PI / 2;
+  activeCoordMesh.position.y = 0.05; // Hover just above the board
+  scene.add(activeCoordMesh);
+
+  // ── Floating Coordinate Sprite ──
+  floatingCoordCanvas = document.createElement('canvas');
+  floatingCoordCanvas.width = 512;
+  floatingCoordCanvas.height = 256;
+  floatingCoordCtx = floatingCoordCanvas.getContext('2d');
+  floatingCoordTexture = new THREE.CanvasTexture(floatingCoordCanvas);
+  floatingCoordTexture.colorSpace = THREE.SRGBColorSpace;
+  
+  const floatingMat = new THREE.SpriteMaterial({
+    map: floatingCoordTexture,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  floatingCoordSprite = new THREE.Sprite(floatingMat);
+  floatingCoordSprite.scale.set(4, 2, 1);
+  floatingCoordSprite.renderOrder = 1000;
+  floatingCoordSprite.visible = false;
+  scene.add(floatingCoordSprite);
 }
 
 let isMaxVFX = false;
@@ -910,10 +1062,17 @@ function animate() {
       }
   }
   
-  const isGameEnd = (currentMoveIndex === moveHistory.length - 1);
-  if (!manualCamOverride && (isGameEnd || (autoCamEnabled && currentMoveIndex >= 0))) {
-    controls.target.lerp(autoCamTarget, 0.035);
-    camera.position.lerp(autoCamPos, 0.035);
+  if (!manualCamOverride && autoCamEnabled && currentMoveIndex >= 0) {
+    controls.target.lerp(autoCamTarget, 0.05);
+    camera.position.lerp(autoCamPos, 0.05);
+  }
+  
+  if (typeof activeCoordMesh !== 'undefined' && activeCoordMesh) {
+    const pulse = Math.sin(timeNow * 0.005) * 0.3 + 0.7; // Pulse between 0.4 and 1.0
+    activeCoordMesh.material.opacity = pulse;
+    if (typeof floatingCoordSprite !== 'undefined' && floatingCoordSprite) {
+      floatingCoordSprite.material.opacity = pulse;
+    }
   }
   
   if (controls) controls.update();
@@ -1058,6 +1217,7 @@ function animate() {
       const wave = activeWaves[i];
       wave.distance += wave.speed;
       wave.amplitude *= wave.decay;
+      wave.wavelength += 0.4;
       if (wave.amplitude < 0.05 || wave.distance > wave.maxDistance + wave.wavelength) {
         if (wave.waveGroup) {
           scene.remove(wave.waveGroup);
@@ -1145,6 +1305,9 @@ function initBoard() {
     }
     boardState.push(row);
   }
+  
+  pendingMove = null;
+  if (typeof pendingRingMesh !== 'undefined' && pendingRingMesh) pendingRingMesh.visible = false;
 }
 
 function letterToIndex(c) {
@@ -1196,28 +1359,7 @@ window.loadSampleGame = function(e) {
 };
 
 // Handle Drag and Drop
-const dropZone = document.getElementById('drop-zone');
-const uploadOverlay = document.getElementById('upload-overlay');
-
-uploadOverlay.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
-uploadOverlay.addEventListener('dragleave', () => {
-  dropZone.classList.remove('dragover');
-});
-uploadOverlay.addEventListener('drop', (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file && file.name.toLowerCase().endsWith('.sgf')) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      parseSGF(evt.target.result);
-    };
-    reader.readAsText(file);
-  }
-});
+// Drag and drop is now handled by the external landing page, which passes the SGF via sessionStorage and URL parameter `?action=upload`.
 
 function parseSGF(text) {
   // Simple regex parser for linear game (no variations)
@@ -1260,9 +1402,7 @@ function parseSGF(text) {
     }
   }
   
-  // Hide upload
-  uploadOverlay.style.opacity = '0';
-  setTimeout(() => uploadOverlay.style.display = 'none', 300);
+  // Overlay has been migrated to landing page
   
   // Reset and play
   initBoard();
@@ -1277,6 +1417,7 @@ function parseSGF(text) {
 
 function populateMoveHistory() {
   const list = document.getElementById('move-history');
+  if (!list) return;
   list.innerHTML = '';
   
   // Render reverse chronological to match concept image
@@ -1334,11 +1475,11 @@ function goToMove(targetIdx) {
   
   currentMoveIndex = targetIdx;
   
-  if (currentMoveIndex === moveHistory.length - 1) {
+  if (autoCamEnabled && currentMoveIndex >= 0) {
     updateAutoCamTarget(currentMoveIndex);
-    manualCamOverride = false; // reset override so it smoothly lerps back to overview
-  } else if (autoCamEnabled && currentMoveIndex >= 0) {
-    updateAutoCamTarget(currentMoveIndex);
+    if (!playModeEnabled && currentMoveIndex === moveHistory.length - 1) {
+      manualCamOverride = false; // reset override so it smoothly lerps back to overview
+    }
   }
   
   // Update Active in list
@@ -1347,7 +1488,19 @@ function goToMove(targetIdx) {
     const activeItem = document.getElementById(`move-item-${targetIdx}`);
     if (activeItem) {
       activeItem.classList.add('active');
-      activeItem.scrollIntoView({ block: 'nearest' });
+      const container = document.querySelector('.move-history-list');
+      if (container) {
+          const itemTop = activeItem.offsetTop;
+          const itemBottom = itemTop + activeItem.offsetHeight;
+          const containerTop = container.scrollTop;
+          const containerBottom = containerTop + container.clientHeight;
+          
+          if (itemTop < containerTop) {
+              container.scrollTop = itemTop - 10;
+          } else if (itemBottom > containerBottom) {
+              container.scrollTop = itemBottom - container.clientHeight + 10;
+          }
+      }
     }
   }
   
@@ -1381,6 +1534,8 @@ function goToMove(targetIdx) {
   if (kpiEl) {
       kpiEl.innerText = `${currentMoveIndex + 1} / ${moveHistory.length}`;
   }
+
+
 }
 
 // ---- 3D Rendering ----
@@ -1456,7 +1611,7 @@ function createWaveAnimation(c, r, player) {
     maxDistance: BOARD_UNITS,
     speed: 1.0,      
     amplitude: 1.0,  
-    wavelength: 18,  
+    wavelength: 6,  
     decay: 0.98,
     color: new THREE.Color(color),
     waveGroup: waveGroup
@@ -1523,7 +1678,7 @@ function renderStones3D() {
           });
           
           const pyramid = new THREE.Mesh(pyrGeom, pyrMat);
-          pyramid.position.y = STONE_R * 2.5; 
+          pyramid.position.y = STONE_R * 2.0; 
           currentRippleMesh.add(pyramid);
           currentRippleMesh.userData.pyramid = pyramid;
           
@@ -1592,6 +1747,13 @@ function renderStones3D() {
       }
     }
   }
+
+  const currentMove = currentMoveIndex >= 0 ? moveHistory[currentMoveIndex] : null;
+  if (currentMove) {
+    updateActiveCoordinates(currentMove.c, currentMove.r, currentMove.player);
+  } else {
+    updateActiveCoordinates(-1, -1, null);
+  }
 }
 
 // ---- Analytics & Diagnostics ----
@@ -1618,8 +1780,8 @@ function runDiagnostics() {
   
   if (document.getElementById('est-b-pct')) document.getElementById('est-b-pct').innerText = bPct + '%';
   if (document.getElementById('est-w-pct')) document.getElementById('est-w-pct').innerText = wPct + '%';
-  if (document.getElementById('est-b-pts')) document.getElementById('est-b-pts').innerText = bArea + ' Points';
-  if (document.getElementById('est-w-pts')) document.getElementById('est-w-pts').innerText = wArea + ' Points';
+  if (document.getElementById('est-b-pts')) document.getElementById('est-b-pts').innerText = bArea;
+  if (document.getElementById('est-w-pts')) document.getElementById('est-w-pts').innerText = wArea;
 
   // Draw Donut Chart
   const dCanvas = document.getElementById('donutChart');
@@ -1664,6 +1826,198 @@ function runDiagnostics() {
   if (volatility > 20) volText = "Skirmishing";
   if (volatility > 40) volText = "Volatile Fight";
   if (document.getElementById('volatility-text')) document.getElementById('volatility-text').innerText = volText;
+}
+
+// ---- Play vs AI Mode ────────────────────────────────────────────
+
+let playModeEnabled = false;
+let _lastClickPos = null;
+
+window.startOverlayPlayAI = function() {
+  const uploadOverlay = document.getElementById('upload-overlay');
+  if (uploadOverlay) {
+    uploadOverlay.style.opacity = '0';
+    setTimeout(() => uploadOverlay.style.display = 'none', 300);
+  }
+
+  if (!playModeEnabled) togglePlayMode();
+};
+
+window.togglePlayMode = function() {
+  playModeEnabled = !playModeEnabled;
+  const btn = document.getElementById('btn-play-ai');
+  const navItems = document.querySelectorAll('.nav-item');
+  
+  if (playModeEnabled) {
+      navItems.forEach(item => item.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+  } else {
+      if (btn) btn.classList.remove('active');
+      if (navItems.length > 0) navItems[0].classList.add('active');
+  }
+
+  if (playModeEnabled) {
+    // Start a fresh game
+    const aiColor = getAIColor();
+    const humanColor = aiColor === 'B' ? 'W' : 'B';
+    boardSize = 19;
+    initBoard();
+    moveHistory = [];
+    currentMoveIndex = -1;
+    capturedByBlack = 0;
+    capturedByWhite = 0;
+    captureHistory = [];
+    renderStones3D();
+    runDiagnostics();
+
+    // Ensure auto-cam is off initially for Play vs AI
+    if (autoCamEnabled) toggleAutoCam();
+    autoCamTarget.set(0, 0, 10);
+    autoCamPos.set(0, 72, 56);
+    manualCamOverride = false;
+
+    const kpiEl = document.getElementById('replayer-move-kpi');
+    if (kpiEl) kpiEl.innerText = '0 / 0';
+    document.getElementById('player-black-name').innerText = aiColor === 'B' ? 'AI (Black)' : 'You (Black)';
+    document.getElementById('player-black-rank').innerText = aiColor === 'B' ? '5d' : 'Human';
+    document.getElementById('player-white-name').innerText = aiColor === 'W' ? 'AI (White)' : 'You (White)';
+    document.getElementById('player-white-rank').innerText = aiColor === 'W' ? '5d' : 'Human';
+
+    // AI makes first move if playing Black
+    if (aiColor === 'B') setTimeout(() => aiPlayMove('B'), 500);
+  }
+};
+
+function getNextPlayer() {
+  if (moveHistory.length === 0) return 'B';
+  if (currentMoveIndex === -1) return moveHistory[0].color;
+  const lastMove = moveHistory[currentMoveIndex];
+  return lastMove.color === 'B' ? 'W' : 'B';
+}
+
+function getSgfMovesUpTo(idx) {
+  const moves = [];
+  for (let i = 0; i <= idx; i++) {
+    const m = moveHistory[i];
+    if (m && m.c !== -1) {
+      moves.push({ color: m.color, vertex: AI.sgfCoord(m.c, m.r) });
+    }
+  }
+  return moves;
+}
+
+async function aiPlayMove(color) {
+  const level = '5d';
+  const moves = getSgfMovesUpTo(currentMoveIndex);
+  const status = document.getElementById('ai-status');
+  if (status) status.innerText = `AI (${color}) thinking...`;
+
+  try {
+    const data = await AI.aiGenmove(level, moves, color);
+    if (data.error || !data.move) {
+      if (status) status.innerText = 'AI pass';
+      return;
+    }
+    // Parse SGF move back to column/row indices
+    const letters = 'abcdefghjklmnopqrst';
+    const col = letters.indexOf(data.move[0]);
+    const row = letters.indexOf(data.move[1]);
+    if (col === -1 || row === -1) {
+      if (status) status.innerText = 'AI pass';
+      return;
+    }
+    const label = 'ABCDEFGHJKLMNOPQRST'[col] + (boardSize - row);
+    moveHistory.push({ color, c: col, r: row, label });
+    goToMove(moveHistory.length - 1);
+    if (status) status.innerText = `AI played ${data.move}`;
+
+    // If still in play mode and it's the AI's turn again (shouldn't happen), or trigger next
+    if (playModeEnabled) {
+      // Human's turn now - enable board clicks
+    }
+  } catch (err) {
+    const s = document.getElementById('ai-status');
+    if (s) s.innerText = err.message || 'AI unavailable';
+  }
+}
+
+// 3D board click handler for play mode
+function setupBoardClick() {
+  const canvas = renderer.domElement;
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  let pointerDownX = 0, pointerDownY = 0;
+  canvas.addEventListener('pointerdown', e => {
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
+  });
+
+  canvas.addEventListener('click', function(event) {
+    if (!playModeEnabled) return;
+    if (Math.abs(event.clientX - pointerDownX) > 5 || Math.abs(event.clientY - pointerDownY) > 5) return;
+
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    // Intersect with a virtual plane at y=0
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const intersect = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, intersect);
+
+    if (!intersect) return;
+
+    // Find nearest intersection point on the grid
+    let minDist = STEP_SIZE * 0.8;
+    let bestC = -1, bestR = -1;
+
+    for (let r = 0; r < boardSize; r++) {
+      for (let c = 0; c < boardSize; c++) {
+        const gx = c * STEP_SIZE - GRID_OFFSET;
+        const gz = r * STEP_SIZE - GRID_OFFSET;
+        const dx = intersect.x - gx;
+        const dz = intersect.z - gz;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < minDist) {
+          minDist = dist;
+          bestC = c;
+          bestR = r;
+        }
+      }
+    }
+
+    if (bestC === -1 || bestR === -1) return;
+    if (boardState[bestR][bestC].player) return; // occupied
+
+    // Check whose turn it is
+    const aiColor = getAIColor();
+    const humanColor = aiColor === 'B' ? 'W' : 'B';
+    const nextColor = getNextPlayer();
+    if (nextColor !== humanColor) return;
+
+    if (!pendingMove || pendingMove.c !== bestC || pendingMove.r !== bestR) {
+      pendingMove = { c: bestC, r: bestR };
+      pendingRingMesh.position.x = bestC * STEP_SIZE - GRID_OFFSET;
+      pendingRingMesh.position.z = bestR * STEP_SIZE - GRID_OFFSET;
+      pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x00ff00 : 0x00aaff);
+      pendingRingMesh.visible = true;
+      return;
+    }
+
+    pendingMove = null;
+    if (pendingRingMesh) pendingRingMesh.visible = false;
+
+    const letters = 'ABCDEFGHJKLMNOPQRST';
+    const label = letters[bestC] + (boardSize - bestR);
+    moveHistory.push({ color: humanColor, c: bestC, r: bestR, label });
+    goToMove(moveHistory.length - 1);
+
+    // AI responds
+    setTimeout(() => aiPlayMove(aiColor), 300);
+  });
 }
 
 // ---- Controls UI Binding ----
@@ -1772,5 +2126,34 @@ document.getElementById('btn-replay-fwd5').onclick = () => { if(playInterval) to
 document.getElementById('btn-replay-last').onclick = () => { if(playInterval) togglePlay(); goToMove(moveHistory.length - 1); };
 
 // Boot
-initThree();
-initBoard();
+function bootApp() {
+    initThree();
+    initBoard();
+    setupBoardClick();
+
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+
+    if (action === 'upload') {
+        const sgf = sessionStorage.getItem('uploaded_sgf');
+        if (sgf) {
+            parseSGF(sgf);
+            sessionStorage.removeItem('uploaded_sgf');
+        }
+    } else if (action === 'sample') {
+        window.loadSampleGame();
+    } else if (action === 'play_ai') {
+        const color = params.get('color') || 'B';
+        const colorBtn = document.querySelector(`.ai-color-btn[data-color="${color}"]`);
+        if (colorBtn) window.setAIColor(color, colorBtn);
+        else window.setAIColor(color, { classList: { add: () => {} } }); // Safe fallback
+        window.startOverlayPlayAI();
+    }
+}
+
+// Ensure fonts and DOM are ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+    bootApp();
+}

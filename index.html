@@ -3,380 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Go Analytics</title>
+  <title>3D Go - Play vs AI</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="analytics.css">
+  <link rel="stylesheet" href="landing.css">
   <link rel="stylesheet" href="libs/phosphor-regular.css">
-  
 </head>
 <body>
-<div id="debug-error" style="position:fixed; top:0; left:0; right:0; background:red; color:white; z-index:99999; padding:20px; font-family:monospace; display:none; white-space:pre-wrap;"></div>
-<script>
-window.onerror = function(msg, url, lineNo, columnNo, error) {
-  var d = document.getElementById('debug-error');
-  d.style.display = 'block';
-  d.innerText += '\n' + msg + ' (' + lineNo + ':' + columnNo + ')\n' + (error ? error.stack : '');
-  return false;
-};
-window.addEventListener('unhandledrejection', function(event) {
-  var d = document.getElementById('debug-error');
-  d.style.display = 'block';
-  d.innerText += '\nUnhandled Promise: ' + event.reason;
-});
-</script>
-
-<div id="app">
-  <!-- SIDEBAR -->
-  <aside id="sidebar">
-    <div class="brand">
-      <div class="brand-icon" style="border: none; box-shadow: none; background: transparent; padding: 0;">
-        <img src="favicon.svg" alt="3D Go" style="width: 100%; height: 100%;">
-      </div>
-      <div>
-        <div class="brand-text">3D Go</div>
-        <div class="brand-sub">Ancient Game. Infinite Possibilities.</div>
-      </div>
-    </div>
+  <main class="vertical-layout">
     
-    <div class="nav-menu">
-      <div class="nav-item active"><i class="ph ph-house"></i> Home</div>
-      <div class="nav-item"><i class="ph ph-game-controller"></i> Play</div>
-      <div class="nav-item"><i class="ph ph-eye"></i> Review</div>
-      <div class="nav-item"><i class="ph ph-book-open"></i> Learn</div>
-      <div class="nav-item"><i class="ph ph-chart-bar"></i> Stats</div>
-      <div class="nav-item" style="margin-top: 16px;"><i class="ph ph-users"></i> Community</div>
-      <div class="nav-item"><i class="ph ph-puzzle-piece"></i> Problems</div>
-      <div class="nav-item" style="margin-top: 16px;"><i class="ph ph-gear"></i> Settings</div>
-    </div>
-
-    <div class="daily-challenge">
-      <h4>Daily Challenge</h4>
-      <p>Capture 2 groups</p>
-      <div style="height:40px; display:flex; justify-content:center; align-items:center; gap:4px; margin-bottom:12px;">
-         <div class="cap-stone-mock white"></div>
-         <div class="cap-stone-mock black"></div>
-         <div class="cap-stone-mock white"></div>
-      </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width: 50%;"></div>
-      </div>
-      <div style="display:flex; justify-content:space-between; font-size:10px;">
-        <span class="challenge-time">Ends in 14:32:18</span>
-        <span style="color:var(--text-muted)">0/2</span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- MAIN CONTENT -->
-  <main id="main">
-    
-    <!-- HEADER -->
-    <header id="header">
-      <div style="display: flex; align-items: center; gap: 16px;">
-        <button class="icon-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-          <i class="ph ph-sidebar-simple" style="font-size: 18px;"></i>
-        </button>
-      </div>
+    <!-- Big glowing container card -->
+    <div class="glass-container">
       
-      <div class="header-actions">
-        <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--panel-border); color: var(--text-muted);" onclick="toggleMaxVFX()">Max VFX: OFF</button>
-        <button class="btn-new-game" onclick="document.getElementById('file-input').click()">New Game (SGF)</button>
-        <button class="btn-invite"><i class="ph ph-user-plus"></i> Invite</button>
-        <button class="icon-btn"><i class="ph ph-bell"></i></button>
-        <button class="icon-btn"><i class="ph ph-gear"></i></button>
-        <div class="user-profile">
-          <img src="favicon.svg" alt="User" style="background-color: var(--accent-blue); padding: 4px;">
-          <div>
-            <div class="name">User</div>
-            <div class="plan">Pro Plan</div>
-          </div>
-          <i class="ph ph-caret-down" style="color:var(--text-muted); font-size:12px; margin-left:8px;"></i>
-        </div>
-      </div>
-    </header>
-
-    <!-- DASHBOARD GRID -->
-    <div class="dashboard-grid">
-      
-      <!-- LEFT COL (Static Visual Placeholders to match concept) -->
-      <div class="col-left" style="display: none;">
-        <div class="widget welcome-widget">
-          <div class="welcome-header">
-            <img src="favicon.svg" alt="Avatar" style="background-color: var(--panel-border); padding: 4px;">
-            <div>
-              <div class="widget-title">Hello, User 👋</div>
-              <div class="widget-sub">Ready to play Go?</div>
-            </div>
-          </div>
-          <div class="level-bar-container">
-            <div class="level-badge">Lv. 24</div>
-            <div class="level-progress">
-              <div class="level-progress-fill"></div>
-            </div>
-          </div>
-          <div class="xp-text">1,240 / 2,000 XP</div>
-        </div>
-
-        <div class="widget play-ai-widget">
-          <div class="widget-title">Play vs AI</div>
-          <div class="widget-sub">Challenging and fun</div>
-          <!-- Custom visual -->
-          <div style="flex:1; display:flex; align-items:center; justify-content:center; position:relative; margin-top:20px;">
-            <div style="width:40px; height:50px; background:rgba(6,182,212,0.1); border:1px solid var(--accent-cyan); border-radius:25px; box-shadow:0 0 20px rgba(6,182,212,0.4); position:absolute; z-index:0;"></div>
-            <div class="cap-stone-mock black" style="z-index:1; transform:translate(-15px, 15px);"></div>
-            <div class="cap-stone-mock black" style="z-index:1; transform:translate(5px, 20px);"></div>
-            <div class="cap-stone-mock white" style="z-index:1; transform:translate(20px, 10px);"></div>
-          </div>
-          <button class="icon-btn" style="background:var(--panel-border); border:none; margin-top:auto;"><i class="ph ph-arrow-right"></i></button>
-        </div>
-
-        <div class="widget online-match-widget">
-          <div class="widget-title">Online Match</div>
-          <div class="widget-sub">Play with global players</div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-            <button class="icon-btn" style="background:var(--panel-border); border:none;"><i class="ph ph-arrow-right"></i></button>
-            <div class="globe-icon"><i class="ph ph-globe" style="font-size:60px; color:rgba(139, 92, 246, 0.5); display:block;"></i></div>
-          </div>
-        </div>
-
-        <div class="widget continue-game-widget">
-          <div class="cg-header">
-            <div class="widget-title">Continue Game</div>
-            <i class="ph ph-caret-right" style="color:var(--text-muted)"></i>
-          </div>
-          <div class="cg-details">
-            vs AI • Medium<br>
-            Move 64<br>
-            2h ago
-          </div>
-        </div>
-      </div>
-
-      <!-- CENTER COL (3D Board & Diagnostics) -->
-      <div class="col-center">
-        <div class="widget" style="flex:1; display:flex; flex-direction:column; padding:16px;">
-          <div class="board-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 12px;">
-            <div class="board-status" style="display:flex; align-items:center; gap:12px;">
-              <div class="status-pill">Game in Progress</div>
-              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; white-space: nowrap;">Move: <span id="replayer-move-kpi">0 / 0</span></span>
-            </div>
-            
-            <div style="display:flex; align-items:center; gap:16px;">
-              <div id="perf-monitor" style="font-size: 11px; font-family: monospace; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; padding-right: 16px; border-right: 1px solid var(--panel-border);">
-                <span id="fps-counter">-- FPS</span>
-                <span id="ms-counter">-- ms</span>
-              </div>
-              <button class="btn-settings"><i class="ph ph-gear"></i> Settings</button>
-            </div>
-          </div>
-          
-          <div class="board-container" id="three-container">
-            <!-- WebGL Canvas goes here -->
-          </div>
+      <!-- STEP 1 -->
+      <div class="step-section">
+        <h2><span class="text-purple">Upload</span> your SGF file</h2>
+        <p class="subtitle">Start a new match or analyze like a champion.</p>
         
-        <div class="board-controls">
-            <!-- Left Group -->
-            <div style="display: flex; gap: 4px;">
-                <div class="b-ctrl-btn" id="btn-replay-first" title="First move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline><line x1="5" y1="19" x2="5" y2="5"></line></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-back5" title="Back 5 moves" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-prev" title="Previous move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </div>
-            </div>
-            
-            <!-- Center KPI & Play -->
-            <div style="display: flex; align-items: center; gap: 12px; margin: 0 8px;">
-                <div class="b-ctrl-btn active" id="btn-play" onclick="togglePlay()">
-                  <i class="ph ph-play" id="play-icon"></i>
-                  <div style="display:flex; align-items:center; gap:2px;">
-                    <input type="number" id="play-delay" value="1000" step="100" min="100" style="width:40px; background:transparent; border:none; color:inherit; font-size:10px; text-align:right; outline:none; font-family:monospace;" onchange="updateDelay(event)" onclick="event.stopPropagation()">
-                    <span style="font-size:10px;">ms</span>
-                  </div>
-                </div>
-            </div>
-
-            <!-- Right Group -->
-            <div style="display: flex; gap: 4px;">
-                <div class="b-ctrl-btn" id="btn-replay-next" title="Next move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-fwd5" title="Forward 5 moves" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-last" title="To end" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-                </div>
-            </div>
-            <div class="b-ctrl-btn" id="btn-cam-auto-group" style="margin-left: auto; padding: 0 6px 0 16px; gap: 8px;">
-                <div id="btn-cam-auto" onclick="toggleAutoCam()" style="display: flex; align-items: center; gap: 6px; cursor: pointer; height: 100%;">
-                    <i class="ph ph-video-camera"></i><span>Auto-Cam</span>
-                </div>
-                <div style="width: 1px; height: 16px; background: var(--panel-border);"></div>
-                <div id="btn-cam-hoshi" onclick="toggleHoshiCam()" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none;" title="Toggle Hoshi (Star Focus)">
-                    <i class="ph ph-crosshair" id="hoshi-icon" style="font-size: 18px; color: var(--text-muted);"></i>
-                </div>
-            </div>
-            <div class="b-ctrl-btn" id="btn-fx" onclick="toggleFx()"><i class="ph ph-magic-wand"></i><span>VFX</span></div>
+        <div class="upload-dashed-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon-glow">
+            <i class="ph ph-arrow-up" style="font-weight: 700;"></i>
           </div>
-        </div>
-
-        <div class="center-bottom-row">
-          <div class="widget ai-suggestion">
-            <div style="display:flex; flex-direction:column; gap:4px;">
-              <div class="widget-title" style="margin:0; font-size:13px;">AI Suggestion</div>
-              <div style="display:flex; align-items:baseline; gap:8px;">
-                <div style="font-size:22px; font-weight:600; color:white;">Q4</div>
-                <div style="font-size:12px; font-weight:600; color:var(--accent-green)">+3.2% Win Rate</div>
-              </div>
-            </div>
-            
-            <!-- Mock suggestion board visual -->
-            <div style="width:60px; height:45px; background:var(--bg-dark); border-radius:6px; border:1px solid var(--panel-border); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-               <div style="width:12px; height:12px; border:2px solid var(--accent-green); border-radius:50%; box-shadow:0 0 6px var(--accent-green);"></div>
-            </div>
-          </div>
+          <h3>Drag & drop your .sgf file here</h3>
+          <p>or click to <span class="text-blue">browse</span></p>
           
-          <div class="widget territory-est-widget">
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <div class="widget-title" style="margin:0; font-size:13px;">Territory Estimate</div>
-              <!-- Custom Donut Chart (Canvas) -->
-              <div class="donut-chart-container">
-                <canvas id="donutChart" width="56" height="56"></canvas>
-              </div>
-            </div>
-            
-            <div class="donut-stats">
-              <div class="stat-row">
-                <div class="stat-dot black"></div>
-                <span style="font-size:11px;">Black <strong id="est-b-pct">52.1%</strong></span>
-              </div>
-              <div class="stat-row">
-                <div class="stat-dot white"></div>
-                <span style="font-size:11px;">White <strong id="est-w-pct">47.9%</strong></span>
-              </div>
-            </div>
-            
-            <div class="donut-stats" style="text-align:right;">
-              <div style="color:white; font-weight:600; font-size:13px;" id="est-b-pts">83 Points</div>
-              <div class="stat-points" style="margin-bottom:2px; font-size:10px;">Estimated</div>
-              <div style="color:var(--text-muted); font-size:12px;" id="est-w-pts">76 Points</div>
-            </div>
+          <div class="privacy-badge">
+            <i class="ph ph-shield-check"></i> Files are private and never shared
           </div>
         </div>
+        <input type="file" id="file-input" style="display:none" accept=".sgf, .SGF">
       </div>
-
-      <!-- RIGHT COL (Analytics & History) -->
-      <div class="col-right">
-        <div class="widget" id="panel-black">
-          <div class="player-card">
-            <div class="p-card-left">
-              <div class="p-stone black"></div>
-              <div class="p-info">
-                <div class="name" id="player-black-name">Black (AI)</div>
-                <div class="rank" id="player-black-rank">2 Dan</div>
-              </div>
-            </div>
-            <div class="p-time active"><i class="ph ph-chart-bar"></i> <span id="black-caps">0</span> caps</div>
-          </div>
-        </div>
-
-        <div class="widget" id="panel-white">
-          <div class="player-card">
-            <div class="p-card-left">
-              <div class="p-stone white"></div>
-              <div class="p-info">
-                <div class="name" id="player-white-name">White (You)</div>
-                <div class="rank" id="player-white-rank">3 Dan</div>
-              </div>
-            </div>
-            <div class="p-time"><i class="ph ph-chart-bar"></i> <span id="white-caps">0</span> caps</div>
-          </div>
-        </div>
-
-        <div class="widget winrate-widget">
-          <div class="wr-header">
-            <span style="font-weight:600;">Volatility Index</span>
-            <span style="color:var(--accent-green);">● Live</span>
-          </div>
-          <div class="wr-graph"></div>
-          <div class="wr-stats">
-            <div class="wr-stat-box">
-              <span class="wr-stat-label">Combat Volatility</span>
-              <span class="wr-stat-val" id="volatility-val">48.7%</span>
-            </div>
-            <div class="wr-stat-box" style="text-align:right;">
-              <span class="wr-stat-label">Game State</span>
-              <span class="wr-stat-val" style="color:var(--accent-purple); font-size:14px;" id="volatility-text">Peaceful</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="widget move-history-widget">
-          <div class="widget-title">Move History</div>
-          <div class="mh-list" id="move-history">
-            <!-- Dynamic items -->
-          </div>
-          <button class="btn-full-history">View Full History</button>
-        </div>
-
-        <div class="widget captured-widget">
-          <div class="widget-title" style="margin-bottom:0;">Captured Stones</div>
-          <div style="display:flex; gap:24px;">
-            <div class="cap-group">
-              <div class="cap-stones-img">
-                <div class="cap-stone-mock black"></div>
-                <div class="cap-stone-mock black"></div>
-                <div class="cap-stone-mock black"></div>
-              </div>
-              <div class="cap-val" id="disp-b-caps">12</div>
-            </div>
-            <div class="cap-group">
-              <div class="cap-stones-img">
-                <div class="cap-stone-mock white"></div>
-                <div class="cap-stone-mock white"></div>
-                <div class="cap-stone-mock white"></div>
-              </div>
-              <div class="cap-val" id="disp-w-caps">9</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- UPLOAD OVERLAY -->
-  <div id="upload-overlay">
-    <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
-      <i class="ph ph-upload-simple" style="font-size:48px; color:var(--accent-cyan); margin-bottom:16px;"></i>
-      <h2>Upload SGF File</h2>
-      <p>Click or drag & drop a file to begin</p>
       
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--panel-border);">
-        <p style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted);">Or explore a legendary match:</p>
-        <button class="b-ctrl-btn" onclick="loadSampleGame(event)" style="margin: 0 auto; width: auto; padding: 0 24px; color: var(--text-main); border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.1);">
-          <i class="ph ph-robot" style="color: var(--accent-blue);"></i> Play Lee Sedol vs AlphaGo (Game 4)
-        </button>
+      <div class="separator">
+        <span>OR</span>
       </div>
+      
+      <!-- STEP 2 -->
+      <div class="step-section">
+        <h2>Witness humanity's <span class="text-purple">victory</span> over AI</h2>
+        
+        <div class="legendary-card" onclick="playSample()">
+          <div class="vs-img-wrapper">
+            <img src="demo/human_vs_ai.svg" alt="Human VS AI Match">
+          </div>
+          <div class="match-info">
+            <h3>Lee Sedol</h3>
+            <p>vs AlphaGo (Game 4)</p>
+          </div>
+          <button class="play-btn">Play match <i class="ph ph-arrow-up-right"></i></button>
+        </div>
+      </div>
+      
+      <div class="separator">
+        <span>OR</span>
+      </div>
+      
+      <!-- STEP 3 -->
+      <div class="step-section" style="margin-bottom: 0;">
+        <h2>Challenge the <span class="text-purple">AI</span> <span class="rank-badge">5d</span></h2>
+        
+        <div class="ai-controls-row">
+          <button class="color-btn active" id="btn-black" onclick="selectAIColor('B')">
+            <div class="stone black"></div> AI = Black
+          </button>
+          <button class="color-btn" id="btn-white" onclick="selectAIColor('W')">
+            <div class="stone white"></div> AI = White
+          </button>
+          <button class="start-btn" onclick="startAI()">
+            <i class="ph ph-sparkle"></i> Start game
+          </button>
+        </div>
+      </div>
+      
     </div>
-  </div>
-</div>
+    
+    <div class="footer-badge">
+      <i class="ph ph-lock-key"></i> Secure. Private. Designed for champions.
+    </div>
 
-<input type="file" id="file-input" style="display:none" accept=".sgf, .SGF">
+  </main>
+  
+  <script>
+    function selectAIColor(color) {
+      document.getElementById('btn-black').classList.remove('active');
+      document.getElementById('btn-white').classList.remove('active');
+      if (color === 'B') {
+        document.getElementById('btn-black').classList.add('active');
+      } else {
+        document.getElementById('btn-white').classList.add('active');
+      }
+    }
 
-<!-- Scripts -->
-<script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js"></script>
-<script defer src="libs/wasm_b64.js"></script>
-<script defer src="libs/deadstones.bundle.js"></script>
-<script defer src="libs/sgf-parser.js"></script>
-<script defer src="libs/game-tree.js"></script>
-<script defer src="libs/board-estimate.js"></script>
-<script defer src="libs/liberties.js"></script>
-<script defer src="app.js"></script>
+    function startAI() {
+      const color = document.getElementById('btn-black').classList.contains('active') ? 'B' : 'W';
+      window.location.href = `main.html?action=play_ai&color=${color}`;
+    }
 
+    function playSample() {
+      window.location.href = `main.html?action=sample`;
+    }
+
+    document.getElementById('file-input').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        sessionStorage.setItem('uploaded_sgf', e.target.result);
+        window.location.href = 'main.html?action=upload';
+      };
+      reader.readAsText(file);
+    });
+
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#9d4edd';
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+      if (e.dataTransfer.files.length) {
+        document.getElementById('file-input').files = e.dataTransfer.files;
+        document.getElementById('file-input').dispatchEvent(new Event('change'));
+      }
+    });
+  </script>
 </body>
 </html>
