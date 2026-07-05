@@ -1,0 +1,35 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="spin" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ec4899">
+        <animate attributeName="stop-color" values="#ec4899;#8b5cf6;#06b6d4;#ec4899" dur="3s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="50%" stop-color="#8b5cf6">
+        <animate attributeName="stop-color" values="#8b5cf6;#06b6d4;#ec4899;#8b5cf6" dur="3s" repeatCount="indefinite" />
+      </stop>
+      <stop offset="100%" stop-color="#06b6d4">
+        <animate attributeName="stop-color" values="#06b6d4;#ec4899;#8b5cf6;#06b6d4" dur="3s" repeatCount="indefinite" />
+      </stop>
+    </linearGradient>
+    <filter id="glowBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  
+  <!-- Animated rotating group -->
+  <g style="transform-origin: 24px 24px; animation: rotate 10s linear infinite;">
+    <!-- Outer Circle -->
+    <circle cx="24" cy="24" r="18" stroke="url(#spin)" stroke-width="2" opacity="0.9" filter="url(#glowBlur)" />
+    
+    <!-- Hexagon -->
+    <path d="M24 10 L36 17 V31 L24 38 L12 31 V17 Z" stroke="url(#spin)" stroke-width="3" stroke-linejoin="round" fill="none" filter="url(#glowBlur)" />
+  </g>
+
+  <style>
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</svg>
