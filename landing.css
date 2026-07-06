@@ -20,11 +20,11 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: 'Inter', -apple-system, sans-serif;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
   background-image: radial-gradient(circle at center, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
   -webkit-font-smoothing: antialiased;
 }
@@ -35,7 +35,7 @@ body {
   align-items: center;
   width: 100%;
   padding: 20px;
-  max-height: 100vh;
+  margin: auto 0;
 }
 
 .glass-container {
