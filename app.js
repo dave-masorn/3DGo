@@ -400,7 +400,7 @@ function initThree() {
   controls.enablePan = true;
   controls.screenSpacePanning = false; // Pan moves parallel to the board (XZ plane), keeping height constant
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
 
   controls.update();
   controls.saveState();

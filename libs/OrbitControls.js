@@ -621,6 +621,7 @@
 
 				if ( scope.enableZoom ) handleTouchStartDolly( event );
 				if ( scope.enableRotate ) handleTouchStartRotate( event );
+				if ( scope.enablePan ) handleTouchStartPan( event );
 
 			}
 
@@ -700,6 +701,7 @@
 
 				if ( scope.enableZoom ) handleTouchMoveDolly( event );
 				if ( scope.enableRotate ) handleTouchMoveRotate( event );
+				if ( scope.enablePan ) handleTouchMovePan( event );
 
 			}
 
