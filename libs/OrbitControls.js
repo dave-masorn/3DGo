@@ -645,13 +645,12 @@
 					const dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
 					const touchAngleEnd = Math.atan2( dy, dx );
 					
-					let angleDiff = touchAngleStart - touchAngleEnd;
+					let angleDiff = touchAngleEnd - touchAngleStart;
 					if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
 					else if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 					
-					rotateLeft( angleDiff * scope.rotateSpeed * 1.5 );
+					rotateLeft( angleDiff * scope.rotateSpeed * 3.0 );
 					touchAngleStart = touchAngleEnd;
-
 				}
 
 			}
