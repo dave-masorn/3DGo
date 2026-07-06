@@ -645,7 +645,7 @@
 					const dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
 					const touchAngleEnd = Math.atan2( dy, dx );
 					
-					let angleDiff = touchAngleEnd - touchAngleStart;
+					let angleDiff = touchAngleStart - touchAngleEnd;
 					if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
 					else if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
 					
@@ -670,7 +670,9 @@
 				}
 
 				panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
-				pan( panDelta.x, panDelta.y );
+
+				pan( -panDelta.x, -panDelta.y );
+
 				panStart.copy( panEnd );
 
 			}
