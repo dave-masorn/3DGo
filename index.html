@@ -14,8 +14,8 @@
     <!-- Big glowing container card -->
     <div class="glass-container" style="position: relative;">
       <div id="version-stamp" style="position: absolute; top: -32px; right: 16px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 10;">
-        Deployed Ver.: 0.1.043<br>
-        Last Update: Jul 6, 2026 : 23:07:43
+        Deployed Ver.: 0.1.044<br>
+        Last Update: Jul 6, 2026 : 23:54:03
       </div>
       
       <!-- STEP 1 -->
@@ -107,12 +107,12 @@
     }
 
     function startAI() {
-      let color = 'B';
-      if (document.getElementById('btn-white').classList.contains('active')) color = 'W';
+      let aiColor = 'W'; // If user plays Black, AI plays White
+      if (document.getElementById('btn-white').classList.contains('active')) aiColor = 'B';
       if (document.getElementById('btn-random').classList.contains('active')) {
-         color = Math.random() > 0.5 ? 'B' : 'W';
+         aiColor = Math.random() > 0.5 ? 'B' : 'W';
       }
-      window.location.href = `main.html?action=play_ai&color=${color}`;
+      window.location.href = `main.html?action=play_ai&color=${aiColor}`;
     }
 
     function playSample() {

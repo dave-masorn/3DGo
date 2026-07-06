@@ -36,11 +36,12 @@ function selectModalColor(color) {
 }
 
 function startNewModalGame() {
-  let color = document.getElementById('ai-color-modal').dataset.color || 'B';
-  if (color === 'R') {
-    color = Math.random() > 0.5 ? 'B' : 'W';
+  let userColor = document.getElementById('ai-color-modal').dataset.color || 'B';
+  let aiColor = userColor === 'B' ? 'W' : 'B';
+  if (userColor === 'R') {
+    aiColor = Math.random() > 0.5 ? 'B' : 'W';
   }
-  window.location.href = `main.html?action=play_ai&color=${color}`;
+  window.location.href = `main.html?action=play_ai&color=${aiColor}`;
 }
 </script>
 
@@ -351,7 +352,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.1.041"></script>
+<script defer src="app.js?v=0.1.044"></script>
 
 </body>
 </html>
