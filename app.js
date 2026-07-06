@@ -427,7 +427,7 @@ function initThree() {
   const confMat = new THREE.MeshBasicMaterial({ map: confTex, transparent: true, depthWrite: false, depthTest: false });
   pendingRingMesh = new THREE.Mesh(new THREE.PlaneGeometry(STONE_R * 2.5, STONE_R * 2.5), confMat);
   pendingRingMesh.rotation.x = -Math.PI / 2;
-  pendingRingMesh.position.y = STONE_R * 0.4;
+  pendingRingMesh.position.y = 0.05;
   pendingRingMesh.visible = false;
   pendingRingMesh.renderOrder = 999;
   scene.add(pendingRingMesh);

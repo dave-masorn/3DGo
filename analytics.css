@@ -820,6 +820,7 @@ body {
   
   .board-container {
     border-radius: 0;
+    min-height: calc(100vh - 220px);
   }
 
   /* SIDEBAR AS OVERLAY */
