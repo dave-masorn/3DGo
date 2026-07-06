@@ -445,10 +445,11 @@ function initThree() {
   lastMoveMarkerMesh.visible = false;
   scene.add(lastMoveMarkerMesh);
 
-  let didCameraMove = false;
+  let isCameraDragging = false;
   controls.addEventListener('start', () => {
     manualCamOverride = true;
     didCameraMove = false;
+    isCameraDragging = true;
   });
   
   controls.addEventListener('change', () => {
@@ -456,6 +457,7 @@ function initThree() {
   });
   
   controls.addEventListener('end', () => {
+    isCameraDragging = false;
     if (!didCameraMove) {
       // It was just a click, don't break the auto-cam override loop
       manualCamOverride = false;
