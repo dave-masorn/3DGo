@@ -1,0 +1,244 @@
+:root {
+    /* Base Colors */
+    --color-bg: #030408;
+    --color-grid-line: rgba(255, 255, 255, 0.03);
+    --color-grid-dot: rgba(255, 255, 255, 0.5);
+
+    /* Primary (Blue) Theme */
+    --color-primary-core: #ffffff;
+    --color-primary-light: #b3d9ff;
+    --color-primary-base: #0066ff;
+    --color-primary-dark: #002288;
+    --color-primary-glow: rgba(0, 100, 255, 0.65);
+
+    /* Secondary (Orange) Theme */
+    --color-secondary-core: #050505;
+    --color-secondary-light: #ffcc66; /* Hot yellow/orange for the rim */
+    --color-secondary-base: #ff3300;
+    --color-secondary-dark: #000000;
+    --color-secondary-glow: rgba(255, 60, 0, 0.55);
+
+    /* Dimensions */
+    --btn-width: 320px;
+    --btn-height: 200px;
+    --btn-gap: 80px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--color-bg);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.dashboard {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1200px;
+}
+
+/* Ambient Background Glows */
+.dashboard__ambient {
+    position: absolute;
+    top: 50%;
+    width: 50vw;
+    height: 50vw;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    filter: blur(130px);
+    opacity: 0.25;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.dashboard__ambient--primary {
+    left: -10vw;
+    background-color: var(--color-primary-base);
+}
+
+.dashboard__ambient--secondary {
+    right: -10vw;
+    background-color: var(--color-secondary-base);
+}
+
+/* Perspective Grid */
+.dashboard__grid {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-image:
+        radial-gradient(circle at 0 0, var(--color-grid-dot) 1px, transparent 2px),
+        linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px);
+    background-size: 80px 80px;
+    transform: rotateX(65deg) translateY(-100px);
+    transform-origin: center center;
+    /* Radial mask to fade out edges smoothly */
+    mask-image: radial-gradient(ellipse at center, black 15%, transparent 65%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 15%, transparent 65%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Controls Container */
+.dashboard__controls {
+    display: flex;
+    gap: var(--btn-gap);
+    z-index: 10;
+    position: relative;
+    transform: translateY(-20px);
+}
+
+/* Base Lens Button Styles */
+.lens-btn {
+    appearance: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    width: var(--btn-width);
+    height: var(--btn-height);
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease;
+}
+
+.lens-btn:hover {
+    transform: scale(1.04) translateY(-6px);
+    filter: brightness(1.15);
+}
+
+.lens-btn:active {
+    transform: scale(0.98) translateY(2px);
+    transition: transform 0.1s;
+}
+
+.lens-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: 12px;
+}
+
+/* Primary (Blue) Button */
+.lens-btn--primary {
+    background: radial-gradient(ellipse at 50% 45%,
+        var(--color-primary-core) 15%,
+        var(--color-primary-light) 50%,
+        var(--color-primary-base) 85%,
+        var(--color-primary-dark) 100%
+    );
+    box-shadow:
+        0 35px 70px -15px var(--color-primary-glow), /* Floor cast glow */
+        inset 0 -25px 40px rgba(0, 80, 255, 0.85), /* Inner bottom depth */
+        inset 0 15px 25px rgba(255, 255, 255, 0.95), /* Inner top highlight */
+        inset 0 0 0 2px rgba(255, 255, 255, 0.4), /* Crisp outer rim */
+        inset -15px 0 30px rgba(255, 100, 0, 0.06); /* Subtle environmental reflection from orange */
+}
+
+/* Secondary (Orange) Button */
+.lens-btn--secondary {
+    background: radial-gradient(ellipse at 50% 25%,
+        #1a1a1a 0%,
+        var(--color-secondary-core) 55%,
+        var(--color-secondary-dark) 100%
+    );
+    box-shadow:
+        0 35px 70px -15px var(--color-secondary-glow), /* Floor cast glow */
+        inset 0 -45px 50px -10px var(--color-secondary-base), /* Deep inner fire */
+        inset 0 -8px 15px var(--color-secondary-light), /* Intense bright bottom rim */
+        inset 0 25px 40px rgba(0, 0, 0, 0.98), /* Dark top shadow */
+        inset 0 0 0 1px rgba(255, 255, 255, 0.15), /* Subtle outer rim */
+        inset 15px 0 30px rgba(0, 100, 255, 0.06); /* Subtle environmental reflection from blue */
+}
+
+/* Reflections Container */
+.lens-btn__reflection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Primary Top Reflection */
+.lens-btn--primary .lens-btn__reflection::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12%;
+    width: 76%;
+    height: 45%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 90%);
+}
+
+/* Secondary Top Reflection */
+.lens-btn--secondary .lens-btn__reflection::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 15%;
+    width: 70%;
+    height: 40%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 80%);
+    box-shadow: inset 0 10px 15px -5px rgba(255, 255, 255, 0.4);
+}
+
+/* Secondary Side Reflection (Blueish tint on the dark glass edge) */
+.lens-btn--secondary .lens-btn__reflection::after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    right: 8%;
+    width: 30%;
+    height: 60%;
+    border-radius: 50%;
+    box-shadow: inset -12px 10px 20px -10px rgba(100, 150, 255, 0.3);
+    transform: rotate(20deg);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 860px) {
+    .dashboard__controls {
+        flex-direction: column;
+        gap: 60px;
+    }
+
+    .lens-btn {
+        width: 280px;
+        height: 175px;
+    }
+
+    .dashboard__grid {
+        transform: rotateX(60deg) translateY(-50px);
+        background-size: 60px 60px;
+    }
+}
+
+@media (max-width: 400px) {
+    .lens-btn {
+        width: 240px;
+        height: 150px;
+    }
+    
+    .dashboard__controls {
+        gap: 40px;
+    }
+}

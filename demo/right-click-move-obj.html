@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Grab and Drop</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            /* Blocks text highlight on the background page */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #drag-box {
+            width: 150px;
+            height: 150px;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 8px;
+            position: absolute;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: move;
+            transition: background-color 0.1s;
+
+            /* ABSOLUTE LOCKOUT: Makes text selection or options impossible */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-drag: none;
+            -webkit-user-drag: none;
+        }
+
+        #drag-box.dragging {
+            background-color: #28a745;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        #context-menu {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            padding: 5px 0;
+            z-index: 1000;
+        }
+
+        .menu-item {
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .menu-item:hover {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="drag-box">Right-Click to Grab</div>
+
+    <div id="context-menu">
+        <div class="menu-item" onclick="handleAction('Moved successfully!')">Move here</div>
+        <div class="menu-item" onclick="handleAction('Copied successfully!')">Copy here</div>
+        <div class="menu-item" onclick="cancelAction()">Cancel</div>
+    </div>
+
+    <script>
+        const box = document.getElementById('drag-box');
+        const menu = document.getElementById('context-menu');
+        
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let originalX = 100, originalY = 100; 
+        let currentX = 100, currentY = 100;
+
+        box.style.left = originalX + 'px';
+        box.style.top = originalY + 'px';
+
+        // Block all native system right-click menu commands
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, true);
+
+        box.addEventListener('mousedown', (e) => {
+            if (e.button === 2) { // 2 = Right-click
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!isDragging) {
+                    // 1. Grab element
+                    isDragging = true;
+                    box.classList.add('dragging');
+                    box.innerText = "Right-Click to Drop";
+                    menu.style.display = 'none'; 
+                    
+                    startX = e.clientX - box.offsetLeft;
+                    startY = e.clientY - box.offsetTop;
+                } else {
+                    // 2. Drop element
+                    isDragging = false;
+                    box.classList.remove('dragging');
+                    box.innerText = "Right-Click to Grab";
+
+                    menu.style.left = e.clientX + 'px';
+                    menu.style.top = e.clientY + 'px';
+                    menu.style.display = 'block';
+                }
+            }
+        });
+
+        // Track box movement following the cursor coordinate channel
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            currentX = e.clientX - startX;
+            currentY = e.clientY - startY;
+
+            box.style.left = currentX + 'px';
+            box.style.top = currentY + 'px';
+        });
+
+        function handleAction(message) {
+            alert(message);
+            originalX = currentX;
+            originalY = currentY;
+            menu.style.display = 'none';
+        }
+
+        function cancelAction() {
+            currentX = originalX;
+            currentY = originalY;
+            box.style.left = currentX + 'px';
+            box.style.top = currentY + 'px';
+            menu.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

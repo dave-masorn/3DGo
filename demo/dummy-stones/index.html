@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luminous Glass Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="dashboard">
+        <!-- Ambient background glows to colorize the environment -->
+        <div class="dashboard__ambient dashboard__ambient--primary"></div>
+        <div class="dashboard__ambient dashboard__ambient--secondary"></div>
+
+        <!-- 3D Perspective Grid -->
+        <div class="dashboard__grid"></div>
+
+        <!-- Interactive Elements -->
+        <section class="dashboard__controls">
+            <button class="lens-btn lens-btn--primary" aria-label="Activate Primary System">
+                <span class="lens-btn__reflection"></span>
+            </button>
+            <button class="lens-btn lens-btn--secondary" aria-label="Activate Secondary System">
+                <span class="lens-btn__reflection"></span>
+            </button>
+        </section>
+    </main>
+</body>
+</html>
