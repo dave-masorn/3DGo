@@ -10,6 +10,7 @@ let auraTexture = null;
 let pendingMove = null;
 let pendingRingMesh = null;
 let lastMoveMarkerMesh = null;
+let isCameraDragging = false;
 
 function getAuraTexture() {
   if (!auraTexture) {
@@ -445,7 +446,7 @@ function initThree() {
   lastMoveMarkerMesh.visible = false;
   scene.add(lastMoveMarkerMesh);
 
-  let isCameraDragging = false;
+  let didCameraMove = false;
   controls.addEventListener('start', () => {
     manualCamOverride = true;
     didCameraMove = false;
@@ -1063,6 +1064,7 @@ window.toggleMaxVFX = function() {
 };
 
 let lastTime = performance.now();
+let lastRenderTime = performance.now();
 let frames = 0;
 let lastFpsTime = lastTime;
 
@@ -1070,6 +1072,18 @@ function animate() {
   requestAnimationFrame(animate);
   
   const timeNow = performance.now();
+  
+  const isAutoCamMoving = !manualCamOverride && autoCamEnabled && currentMoveIndex >= 0;
+  const isHighAction = activeWaves.length > 0 || isCameraDragging || isAutoCamMoving;
+  
+  const targetFPS = isHighAction ? 60 : 15;
+  const fpsInterval = 1000 / targetFPS;
+  
+  const elapsedSinceRender = timeNow - lastRenderTime;
+  if (elapsedSinceRender < fpsInterval) return;
+  
+  lastRenderTime = timeNow - (elapsedSinceRender % fpsInterval);
+
   const ms = timeNow - lastTime;
   lastTime = timeNow;
   frames++;
