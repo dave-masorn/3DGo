@@ -294,6 +294,7 @@
 			const rotateStart = new THREE.Vector2();
 			const rotateEnd = new THREE.Vector2();
 			const rotateDelta = new THREE.Vector2();
+			let touchAngleStart = 0;
 			const panStart = new THREE.Vector2();
 			const panEnd = new THREE.Vector2();
 			const panDelta = new THREE.Vector2();
@@ -568,12 +569,17 @@
 				if ( event.touches.length == 1 ) {
 
 					rotateStart.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
+					touchAngleStart = 0;
 
 				} else {
 
 					const x = 0.5 * ( event.touches[ 0 ].pageX + event.touches[ 1 ].pageX );
 					const y = 0.5 * ( event.touches[ 0 ].pageY + event.touches[ 1 ].pageY );
 					rotateStart.set( x, y );
+					
+					const dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
+					const dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
+					touchAngleStart = Math.atan2( dy, dx );
 
 				}
 
@@ -623,21 +629,30 @@
 				if ( event.touches.length == 1 ) {
 
 					rotateEnd.set( event.touches[ 0 ].pageX, event.touches[ 0 ].pageY );
+					rotateDelta.subVectors( rotateEnd, rotateStart ).multiplyScalar( scope.rotateSpeed );
+					const element = scope.domElement;
+					rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientHeight ); // yes, height
+					rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight );
+					rotateStart.copy( rotateEnd );
 
 				} else {
 
 					const x = 0.5 * ( event.touches[ 0 ].pageX + event.touches[ 1 ].pageX );
 					const y = 0.5 * ( event.touches[ 0 ].pageY + event.touches[ 1 ].pageY );
 					rotateEnd.set( x, y );
+					
+					const dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
+					const dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
+					const touchAngleEnd = Math.atan2( dy, dx );
+					
+					let angleDiff = touchAngleStart - touchAngleEnd;
+					if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+					else if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+					
+					rotateLeft( angleDiff * scope.rotateSpeed * 1.5 );
+					touchAngleStart = touchAngleEnd;
 
 				}
-
-				rotateDelta.subVectors( rotateEnd, rotateStart ).multiplyScalar( scope.rotateSpeed );
-				const element = scope.domElement;
-				rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientHeight ); // yes, height
-
-				rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight );
-				rotateStart.copy( rotateEnd );
 
 			}
 
