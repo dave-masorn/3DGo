@@ -846,6 +846,20 @@ body {
     margin-right: 0;
   }
 
+  #mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  
+  #sidebar.mobile-open + #mobile-sidebar-overlay {
+    display: block;
+  }
+
   /* HEADER */
   #header {
     flex-wrap: wrap;

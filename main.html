@@ -100,7 +100,7 @@ window.addEventListener('unhandledrejection', function(event) {
     </div>
     
     <div class="nav-menu">
-      <div class="nav-item active"><i class="ph ph-house"></i> Home</div>
+      <div class="nav-item active" style="cursor:pointer" onclick="window.location.href='index.html'"><i class="ph ph-folder-open"></i> SGF</div>
       <div class="nav-item"><i class="ph ph-game-controller"></i> Play</div>
       <div class="nav-item"><i class="ph ph-eye"></i> Review</div>
       <div class="nav-item"><i class="ph ph-book-open"></i> Learn</div>
@@ -129,6 +129,9 @@ window.addEventListener('unhandledrejection', function(event) {
     </div>
   </aside>
 
+  <!-- Mobile Overlay for Sidebar -->
+  <div id="mobile-sidebar-overlay" onclick="toggleSidebar()"></div>
+
   <!-- MAIN CONTENT -->
   <main id="main">
     
@@ -142,7 +145,7 @@ window.addEventListener('unhandledrejection', function(event) {
       
       <div class="header-actions">
         <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--accent-purple); color: var(--accent-purple);" onclick="toggleMaxVFX()">Max VFX: ON</button>
-        <button id="btn-new-game" class="btn-new-game" onclick="handleNewGameClick()">New Game</button>
+        <button id="btn-new-game" class="btn-new-game" onclick="handleNewGameClick()">New SGF</button>
         <button class="btn-invite"><i class="ph ph-user-plus"></i> Invite</button>
         <button class="icon-btn"><i class="ph ph-bell"></i></button>
         <button class="icon-btn"><i class="ph ph-gear"></i></button>
