@@ -474,9 +474,6 @@ function initThree() {
     if (!didCameraMove) {
       // It was just a click, don't break the auto-cam override loop
       manualCamOverride = false;
-    } else if (autoCamEnabled && manualCamOverride) {
-      // If user stops dragging (actual movement), disable auto-cam so they can hold the angle they picked
-      toggleAutoCam();
     }
   });
 
@@ -1554,9 +1551,7 @@ function goToMove(targetIdx) {
   
   if (autoCamEnabled && currentMoveIndex >= 0) {
     updateAutoCamTarget(currentMoveIndex);
-    if (!playModeEnabled && currentMoveIndex === moveHistory.length - 1) {
-      manualCamOverride = false; // reset override so it smoothly lerps back to overview
-    }
+    manualCamOverride = false; // reset override so it smoothly lerps back to overview or new move
   }
   
   // Update Active in list
