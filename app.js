@@ -1693,8 +1693,8 @@ function createWaveAnimation(c, r, player) {
 
 // Stone radius: 46% of step so stones don't touch but still feel substantial
 const STONE_R = STEP_SIZE * 0.46;
-// Use 16x12 segments by default. Toggled dynamically via Max VFX.
-let stoneGeometry = new THREE.SphereGeometry(STONE_R, 16, 12);
+// Use 32x32 segments by default if Max VFX is on. Toggled dynamically via Max VFX.
+let stoneGeometry = new THREE.SphereGeometry(STONE_R, isMaxVFX ? 32 : 16, isMaxVFX ? 32 : 12);
 const shadowGeometry = new THREE.PlaneGeometry(STONE_R * 2.8, STONE_R * 2.8);
 
 
