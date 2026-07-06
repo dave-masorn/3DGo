@@ -368,6 +368,8 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.5, 600);
   camera.position.set(0, 72, 56);
   camera.lookAt(0, 0, 10);
+  
+  updateCameraFov();
 
   window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
@@ -523,7 +525,7 @@ function initThree() {
     const h = container.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    camera.updateProjectionMatrix();
+    updateCameraFov();
   });
 
   // Right-click toggle-drag to pan (following demo/right-click-move-obj.html)
@@ -1112,7 +1114,7 @@ function animate() {
       if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
           renderer.setSize(container.clientWidth, container.clientHeight, false);
           camera.aspect = container.clientWidth / container.clientHeight;
-          camera.updateProjectionMatrix();
+          updateCameraFov();
       }
   }
   
@@ -2225,4 +2227,18 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootApp);
 } else {
     bootApp();
+}
+
+function updateCameraFov() {
+  if (!camera) return;
+  const baseVerticalFov = 42; 
+  if (camera.aspect < 1.0) {
+    const baseVerticalFovRad = THREE.MathUtils.degToRad(baseVerticalFov);
+    const targetHorizontalFovRad = 2 * Math.atan(Math.tan(baseVerticalFovRad / 2) * 1.0);
+    const newVerticalFovRad = 2 * Math.atan(Math.tan(targetHorizontalFovRad / 2) / camera.aspect);
+    camera.fov = THREE.MathUtils.radToDeg(newVerticalFovRad);
+  } else {
+    camera.fov = baseVerticalFov;
+  }
+  camera.updateProjectionMatrix();
 }
