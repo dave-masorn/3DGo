@@ -9,6 +9,7 @@ let currentRippleMesh = null; // Reused for the 3D aura system
 let auraTexture = null;
 let pendingMove = null;
 let pendingRingMesh = null;
+let lastMoveMarkerMesh = null;
 
 function getAuraTexture() {
   if (!auraTexture) {
@@ -399,13 +400,50 @@ function initThree() {
   controls.update();
   controls.saveState();
 
-  const ringGeom = new THREE.TorusGeometry(STONE_R * 0.8, STONE_R * 0.1, 16, 32);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.8 });
-  pendingRingMesh = new THREE.Mesh(ringGeom, ringMat);
-  pendingRingMesh.rotation.x = Math.PI / 2;
-  pendingRingMesh.position.y = STONE_R * 0.3;
+  const confCanvas = document.createElement('canvas');
+  confCanvas.width = 128;
+  confCanvas.height = 128;
+  const confCtx = confCanvas.getContext('2d');
+  
+  confCtx.strokeStyle = '#ffffff';
+  confCtx.lineWidth = 6;
+  confCtx.shadowColor = 'rgba(0,0,0,0.5)';
+  confCtx.shadowBlur = 4;
+  confCtx.beginPath();
+  confCtx.arc(64, 64, 50, 0, Math.PI * 2);
+  confCtx.stroke();
+
+  confCtx.fillStyle = '#ffffff';
+  confCtx.beginPath();
+  confCtx.arc(64, 64, 12, 0, Math.PI * 2);
+  confCtx.fill();
+
+  const confTex = new THREE.CanvasTexture(confCanvas);
+  const confMat = new THREE.MeshBasicMaterial({ map: confTex, transparent: true, depthWrite: false });
+  pendingRingMesh = new THREE.Mesh(new THREE.PlaneGeometry(STONE_R * 2.5, STONE_R * 2.5), confMat);
+  pendingRingMesh.rotation.x = -Math.PI / 2;
+  pendingRingMesh.position.y = STONE_R * 0.4;
   pendingRingMesh.visible = false;
   scene.add(pendingRingMesh);
+
+  const markerCanvas = document.createElement('canvas');
+  markerCanvas.width = 64;
+  markerCanvas.height = 64;
+  const markerCtx = markerCanvas.getContext('2d');
+  markerCtx.fillStyle = '#10b981'; // vibrant green
+  markerCtx.shadowColor = 'rgba(0,0,0,0.8)';
+  markerCtx.shadowBlur = 4;
+  markerCtx.beginPath();
+  markerCtx.arc(32, 32, 16, 0, Math.PI * 2);
+  markerCtx.fill();
+  
+  const markerTex = new THREE.CanvasTexture(markerCanvas);
+  const markerMat = new THREE.MeshBasicMaterial({ map: markerTex, transparent: true, depthWrite: false });
+  lastMoveMarkerMesh = new THREE.Mesh(new THREE.PlaneGeometry(STONE_R, STONE_R), markerMat);
+  lastMoveMarkerMesh.rotation.x = -Math.PI / 2;
+  lastMoveMarkerMesh.position.y = STONE_R * 1.05; // Just above the stone
+  lastMoveMarkerMesh.visible = false;
+  scene.add(lastMoveMarkerMesh);
 
   let didCameraMove = false;
   controls.addEventListener('start', () => {
@@ -1535,7 +1573,7 @@ function goToMove(targetIdx) {
       kpiEl.innerText = `${currentMoveIndex + 1} / ${moveHistory.length}`;
   }
 
-
+  updatePositionMarker(currentMoveIndex);
 }
 
 // ---- 3D Rendering ----
@@ -1953,9 +1991,9 @@ function setupBoardClick() {
     pointerDownY = e.clientY;
   });
 
-  canvas.addEventListener('click', function(event) {
+  canvas.addEventListener('pointerup', function(event) {
     if (!playModeEnabled) return;
-    if (Math.abs(event.clientX - pointerDownX) > 5 || Math.abs(event.clientY - pointerDownY) > 5) return;
+    if (Math.abs(event.clientX - pointerDownX) > 15 || Math.abs(event.clientY - pointerDownY) > 15) return;
 
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -2002,7 +2040,7 @@ function setupBoardClick() {
       pendingMove = { c: bestC, r: bestR };
       pendingRingMesh.position.x = bestC * STEP_SIZE - GRID_OFFSET;
       pendingRingMesh.position.z = bestR * STEP_SIZE - GRID_OFFSET;
-      pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x00ff00 : 0x00aaff);
+      pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
       pendingRingMesh.visible = true;
       return;
     }
@@ -2024,6 +2062,21 @@ function setupBoardClick() {
 
 let playInterval = null;
 let currentDelay = 1000;
+
+function updatePositionMarker(targetIdx) {
+  if (targetIdx >= 0 && targetIdx < moveHistory.length) {
+    const lastM = moveHistory[targetIdx];
+    if (lastM && lastM.c !== -1 && lastMoveMarkerMesh) {
+      lastMoveMarkerMesh.position.x = lastM.c * STEP_SIZE - GRID_OFFSET;
+      lastMoveMarkerMesh.position.z = lastM.r * STEP_SIZE - GRID_OFFSET;
+      lastMoveMarkerMesh.visible = true;
+    } else if (lastMoveMarkerMesh) {
+      lastMoveMarkerMesh.visible = false;
+    }
+  } else if (lastMoveMarkerMesh) {
+    lastMoveMarkerMesh.visible = false;
+  }
+}
 
 function updateDelay(e) {
   currentDelay = parseInt(e.target.value) || 1000;
