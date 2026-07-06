@@ -1929,6 +1929,11 @@ window.togglePlayMode = function() {
       if (navItems.length > 0) navItems[0].classList.add('active');
   }
 
+  const newGameBtn = document.getElementById('btn-new-game');
+  if (newGameBtn) {
+      newGameBtn.innerText = playModeEnabled ? 'New Game' : 'New SGF';
+  }
+
   if (playModeEnabled) {
     // Start a fresh game
     const aiColor = getAIColor();
