@@ -9,6 +9,7 @@ let currentRippleMesh = null; // Reused for the 3D aura system
 let auraTexture = null;
 let pendingMove = null;
 let pendingRingMesh = null;
+let hoverRingMesh = null;
 let lastMoveMarkerMesh = null;
 let isCameraDragging = false;
 
@@ -422,12 +423,20 @@ function initThree() {
   confCtx.fill();
 
   const confTex = new THREE.CanvasTexture(confCanvas);
-  const confMat = new THREE.MeshBasicMaterial({ map: confTex, transparent: true, depthWrite: false });
+  confTex.needsUpdate = true;
+  const confMat = new THREE.MeshBasicMaterial({ map: confTex, transparent: true, depthWrite: false, depthTest: false });
   pendingRingMesh = new THREE.Mesh(new THREE.PlaneGeometry(STONE_R * 2.5, STONE_R * 2.5), confMat);
   pendingRingMesh.rotation.x = -Math.PI / 2;
   pendingRingMesh.position.y = STONE_R * 0.4;
   pendingRingMesh.visible = false;
+  pendingRingMesh.renderOrder = 999;
   scene.add(pendingRingMesh);
+
+  hoverRingMesh = pendingRingMesh.clone();
+  hoverRingMesh.material = confMat.clone();
+  hoverRingMesh.material.opacity = 0.5;
+  hoverRingMesh.renderOrder = 999;
+  scene.add(hoverRingMesh);
 
   const markerCanvas = document.createElement('canvas');
   markerCanvas.width = 64;
@@ -441,6 +450,7 @@ function initThree() {
   markerCtx.fill();
   
   const markerTex = new THREE.CanvasTexture(markerCanvas);
+  markerTex.needsUpdate = true;
   const markerMat = new THREE.MeshBasicMaterial({ map: markerTex, transparent: true, depthWrite: false });
   lastMoveMarkerMesh = new THREE.Mesh(new THREE.PlaneGeometry(STONE_R, STONE_R), markerMat);
   lastMoveMarkerMesh.rotation.x = -Math.PI / 2;
@@ -603,7 +613,6 @@ function initThree() {
   });
 
   // Removed ResizeObserver to prevent infinite layout thrashing loops
-  if (typeof setupBoardClick === 'function') setupBoardClick();
   animate();
 }
 
@@ -2009,27 +2018,18 @@ function setupBoardClick() {
     pointerDownY = e.clientY;
   });
 
-  canvas.addEventListener('pointerup', function(event) {
-    if (!playModeEnabled) return;
-    if (Math.abs(event.clientX - pointerDownX) > 15 || Math.abs(event.clientY - pointerDownY) > 15) return;
-
+  function getRaycastIntersect(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-
-    // Intersect with a virtual plane at y=0
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const intersect = new THREE.Vector3();
     raycaster.ray.intersectPlane(plane, intersect);
-
-    if (!intersect) return;
-
-    // Find nearest intersection point on the grid
+    if (!intersect) return null;
+    
     let minDist = STEP_SIZE * 0.8;
     let bestC = -1, bestR = -1;
-
     for (let r = 0; r < boardSize; r++) {
       for (let c = 0; c < boardSize; c++) {
         const gx = c * STEP_SIZE - GRID_OFFSET;
@@ -2044,31 +2044,66 @@ function setupBoardClick() {
         }
       }
     }
+    return { c: bestC, r: bestR };
+  }
 
-    if (bestC === -1 || bestR === -1) return;
-    if (boardState[bestR][bestC].player) return; // occupied
+  canvas.addEventListener('pointermove', function(event) {
+    if (!playModeEnabled || event.pointerType !== 'mouse') return;
+    
+    const loc = getRaycastIntersect(event.clientX, event.clientY);
+    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
+      if (hoverRingMesh) hoverRingMesh.visible = false;
+      lastRenderTime = 0;
+      return;
+    }
 
-    // Check whose turn it is
     const aiColor = getAIColor();
     const humanColor = aiColor === 'B' ? 'W' : 'B';
     const nextColor = getNextPlayer();
     if (nextColor !== humanColor) return;
 
-    if (!pendingMove || pendingMove.c !== bestC || pendingMove.r !== bestR) {
-      pendingMove = { c: bestC, r: bestR };
-      pendingRingMesh.position.x = bestC * STEP_SIZE - GRID_OFFSET;
-      pendingRingMesh.position.z = bestR * STEP_SIZE - GRID_OFFSET;
-      pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
-      pendingRingMesh.visible = true;
+    if (pendingMove && pendingMove.c === loc.c && pendingMove.r === loc.r) {
+      if (hoverRingMesh) hoverRingMesh.visible = false;
       return;
     }
 
+    hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+    hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+    hoverRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
+    hoverRingMesh.visible = true;
+    lastRenderTime = 0; // Force immediate render
+  });
+
+  canvas.addEventListener('pointerup', function(event) {
+    if (!playModeEnabled) return;
+    if (Math.abs(event.clientX - pointerDownX) > 15 || Math.abs(event.clientY - pointerDownY) > 15) return;
+
+    const loc = getRaycastIntersect(event.clientX, event.clientY);
+    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) return;
+
+    const aiColor = getAIColor();
+    const humanColor = aiColor === 'B' ? 'W' : 'B';
+    const nextColor = getNextPlayer();
+    if (nextColor !== humanColor) return;
+
+    if (!pendingMove || pendingMove.c !== loc.c || pendingMove.r !== loc.r) {
+      pendingMove = { c: loc.c, r: loc.r };
+      pendingRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+      pendingRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+      pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
+      pendingRingMesh.visible = true;
+      if (hoverRingMesh) hoverRingMesh.visible = false;
+      lastRenderTime = 0; 
+      return;
+    }
+
+    // Place stone
     pendingMove = null;
     if (pendingRingMesh) pendingRingMesh.visible = false;
 
     const letters = 'ABCDEFGHJKLMNOPQRST';
-    const label = letters[bestC] + (boardSize - bestR);
-    moveHistory.push({ color: humanColor, c: bestC, r: bestR, label });
+    const label = letters[loc.c] + (boardSize - loc.r);
+    moveHistory.push({ color: humanColor, c: loc.c, r: loc.r, label });
     goToMove(moveHistory.length - 1);
 
     // AI responds
