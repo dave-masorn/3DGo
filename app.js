@@ -481,8 +481,20 @@ function initThree() {
   });
 
   let canvasLastTap = 0;
+  let isMultiTouch = false;
+
+  renderer.domElement.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 1) {
+          isMultiTouch = true;
+          canvasLastTap = 0; // Prevent next touchend from triggering double-tap
+      } else {
+          isMultiTouch = false;
+      }
+  }, { passive: true });
+
   function handleCanvasDblTapClick(e) {
       if (e && e.type === 'touchend') {
+          if (isMultiTouch || e.changedTouches.length > 1) return;
           const currentTime = new Date().getTime();
           const tapLength = currentTime - canvasLastTap;
           if (tapLength < 400 && tapLength > 0) {
