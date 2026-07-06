@@ -385,7 +385,7 @@ function initThree() {
   renderer.domElement.id = 'three-canvas';
   renderer.setSize(container.clientWidth, container.clientHeight, false); // false = let CSS handle display size
   // Cap pixel ratio to 1.25 instead of 2.0. This slashes fragment shader load by ~60% on retina displays while remaining sharp.
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   container.appendChild(renderer.domElement);
 
@@ -1061,7 +1061,7 @@ function createBoardMesh() {
   scene.add(floatingCoordSprite);
 }
 
-let isMaxVFX = false;
+let isMaxVFX = true;
 window.toggleMaxVFX = function() {
   isMaxVFX = !isMaxVFX;
   const btn = document.getElementById('btn-max-vfx');

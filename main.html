@@ -12,6 +12,65 @@
 <body>
 <div id="debug-error" style="position:fixed; top:0; left:0; right:0; background:red; color:white; z-index:99999; padding:20px; font-family:monospace; display:none; white-space:pre-wrap;"></div>
 <script>
+function handleNewGameClick() {
+  if (typeof playModeEnabled !== 'undefined' && playModeEnabled) {
+    document.getElementById('ai-color-modal').style.display = 'flex';
+  } else {
+    document.getElementById('file-input').click();
+  }
+}
+
+function selectModalColor(color) {
+  document.getElementById('modal-btn-black').style.borderColor = 'transparent';
+  document.getElementById('modal-btn-white').style.borderColor = 'transparent';
+  document.getElementById('modal-btn-random').style.borderColor = 'transparent';
+  
+  if (color === 'B') {
+    document.getElementById('modal-btn-black').style.borderColor = 'rgba(255,255,255,0.3)';
+  } else if (color === 'W') {
+    document.getElementById('modal-btn-white').style.borderColor = 'rgba(255,255,255,0.3)';
+  } else {
+    document.getElementById('modal-btn-random').style.borderColor = 'rgba(255,255,255,0.3)';
+  }
+  document.getElementById('ai-color-modal').dataset.color = color;
+}
+
+function startNewModalGame() {
+  let color = document.getElementById('ai-color-modal').dataset.color || 'B';
+  if (color === 'R') {
+    color = Math.random() > 0.5 ? 'B' : 'W';
+  }
+  window.location.href = `main.html?action=play_ai&color=${color}`;
+}
+</script>
+
+<!-- AI Color Selection Modal -->
+<div id="ai-color-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;" data-color="B">
+  <div class="glass-container" style="text-align: center; max-width: 400px; padding: 32px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; backdrop-filter: blur(24px);">
+    <h2 style="margin-bottom: 24px; font-weight: 600;">Challenge the <span class="text-purple" style="color: #a855f7;">AI</span></h2>
+    
+    <div class="ai-controls-row" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
+      <div class="you-play-label" style="color: #4ade80; font-weight: 600; font-size: 16px; margin-right: 4px;">You Play</div>
+      <button class="stone-btn" id="modal-btn-black" onclick="selectModalColor('B')" title="You play Black" style="width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: transparent; padding: 0; border: 2px solid rgba(255,255,255,0.3);">
+        <div class="stone black" style="width: 32px; height: 32px; border-radius: 50%; background: #1a1a1a; border: 1px solid #333; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.5), 2px 4px 6px rgba(0,0,0,0.4);"></div>
+      </button>
+      <button class="stone-btn" id="modal-btn-white" onclick="selectModalColor('W')" title="You play White" style="width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: transparent; padding: 0; border: 2px solid transparent;">
+        <div class="stone white" style="width: 32px; height: 32px; border-radius: 50%; background: #f0f0f0; border: 1px solid #fff; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.1), 2px 4px 6px rgba(0,0,0,0.2);"></div>
+      </button>
+      <div class="or-label" style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin: 0 4px;">OR</div>
+      <button class="stone-btn" id="modal-btn-random" onclick="selectModalColor('R')" title="Random Color" style="width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; background: transparent; padding: 0; border: 2px solid transparent;">
+        <div class="stone random-animated" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #1a1a1a 50%, #e0e0e0 50%); border: 1px solid #777; animation: spinRandom 4s linear infinite; box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3), 2px 4px 6px rgba(0,0,0,0.3);"></div>
+      </button>
+    </div>
+    
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <button class="b-ctrl-btn" onclick="document.getElementById('ai-color-modal').style.display='none'" style="flex: 1;">Cancel</button>
+      <button class="start-btn" onclick="startNewModalGame()" style="flex: 1; background: linear-gradient(90deg, #a855f7, #6366f1); border: none; color: white; padding: 10px; border-radius: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i class="ph ph-sparkle"></i> Start game
+      </button>
+    </div>
+  </div>
+</div>
 window.onerror = function(msg, url, lineNo, columnNo, error) {
   var d = document.getElementById('debug-error');
   d.style.display = 'block';
@@ -80,8 +139,8 @@ window.addEventListener('unhandledrejection', function(event) {
       </div>
       
       <div class="header-actions">
-        <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--panel-border); color: var(--text-muted);" onclick="toggleMaxVFX()">Max VFX: OFF</button>
-        <button class="btn-new-game" onclick="document.getElementById('file-input').click()">New Game (SGF)</button>
+        <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--accent-purple); color: var(--accent-purple);" onclick="toggleMaxVFX()">Max VFX: ON</button>
+        <button id="btn-new-game" class="btn-new-game" onclick="handleNewGameClick()">New Game</button>
         <button class="btn-invite"><i class="ph ph-user-plus"></i> Invite</button>
         <button class="icon-btn"><i class="ph ph-bell"></i></button>
         <button class="icon-btn"><i class="ph ph-gear"></i></button>
@@ -291,7 +350,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.1.040"></script>
+<script defer src="app.js?v=0.1.041"></script>
 
 </body>
 </html>

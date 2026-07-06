@@ -281,6 +281,51 @@ body {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
+.you-play-label {
+  color: #4ade80;
+  font-weight: 600;
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.stone-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background: transparent;
+  padding: 0;
+  border: 2px solid transparent;
+}
+.stone-btn.active {
+  border-color: rgba(255,255,255,0.3);
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(255,255,255,0.1);
+}
+.stone-btn .stone {
+  width: 32px;
+  height: 32px;
+}
+.stone-btn .stone.random-animated {
+  background: linear-gradient(135deg, #1a1a1a 50%, #e0e0e0 50%);
+  border: 1px solid #777;
+  animation: spinRandom 4s linear infinite;
+}
+@keyframes spinRandom {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.or-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 4px;
+}
+
 .stone {
   width: 16px;
   height: 16px;

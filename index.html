@@ -14,8 +14,8 @@
     <!-- Big glowing container card -->
     <div class="glass-container" style="position: relative;">
       <div id="version-stamp" style="position: absolute; top: -32px; right: 16px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 10;">
-        Deployed Ver.: 0.1.040<br>
-        Last Update: Jul 6, 2026 : 22:18:18
+        Deployed Ver.: 0.1.041<br>
+        Last Update: Jul 6, 2026 : 22:54:08
       </div>
       
       <!-- STEP 1 -->
@@ -66,13 +66,18 @@
         <h2>Challenge the <span class="text-purple">AI</span> <span class="rank-badge">5d</span></h2>
         
         <div class="ai-controls-row">
-          <button class="color-btn active" id="btn-black" onclick="selectAIColor('B')">
-            <div class="stone black"></div> AI = Black
+          <div class="you-play-label">You Play</div>
+          <button class="stone-btn active" id="btn-black" onclick="selectAIColor('B')" title="You play Black">
+            <div class="stone black"></div>
           </button>
-          <button class="color-btn" id="btn-white" onclick="selectAIColor('W')">
-            <div class="stone white"></div> AI = White
+          <button class="stone-btn" id="btn-white" onclick="selectAIColor('W')" title="You play White">
+            <div class="stone white"></div>
           </button>
-          <button class="start-btn" onclick="startAI()">
+          <div class="or-label">OR</div>
+          <button class="stone-btn" id="btn-random" onclick="selectAIColor('R')" title="Random Color">
+            <div class="stone random-animated"></div>
+          </button>
+          <button class="start-btn" onclick="startAI()" style="margin-left: 12px;">
             <i class="ph ph-sparkle"></i> Start game
           </button>
         </div>
@@ -90,15 +95,23 @@
     function selectAIColor(color) {
       document.getElementById('btn-black').classList.remove('active');
       document.getElementById('btn-white').classList.remove('active');
+      document.getElementById('btn-random').classList.remove('active');
+      
       if (color === 'B') {
         document.getElementById('btn-black').classList.add('active');
-      } else {
+      } else if (color === 'W') {
         document.getElementById('btn-white').classList.add('active');
+      } else {
+        document.getElementById('btn-random').classList.add('active');
       }
     }
 
     function startAI() {
-      const color = document.getElementById('btn-black').classList.contains('active') ? 'B' : 'W';
+      let color = 'B';
+      if (document.getElementById('btn-white').classList.contains('active')) color = 'W';
+      if (document.getElementById('btn-random').classList.contains('active')) {
+         color = Math.random() > 0.5 ? 'B' : 'W';
+      }
       window.location.href = `main.html?action=play_ai&color=${color}`;
     }
 
