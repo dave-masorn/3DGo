@@ -671,7 +671,7 @@
 
 				panDelta.subVectors( panEnd, panStart ).multiplyScalar( scope.panSpeed );
 
-				pan( -panDelta.x, -panDelta.y );
+				pan( panDelta.x, panDelta.y );
 
 				panStart.copy( panEnd );
 
