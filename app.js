@@ -1944,7 +1944,14 @@ function runDiagnostics() {
   if (typeof BoardEstimate === 'undefined' || typeof Liberties === 'undefined') return;
 
   // 2. Estimation (Defrag Chart)
-  const estResult = BoardEstimate.estimate(boardState, { komi: 6.5, handicap: 0 });
+  let estResult;
+  try {
+      estResult = BoardEstimate.estimate(boardState, { komi: 6.5, handicap: 0 });
+  } catch (e) {
+      console.error("BoardEstimate error", e);
+      return;
+  }
+  if (!estResult) return;
   let aMap = estResult.areaMap;
   
   // Calculate continuous influence to find Conflicting areas
