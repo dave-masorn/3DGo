@@ -1880,43 +1880,78 @@ function runDiagnostics() {
   
   if (typeof BoardEstimate === 'undefined' || typeof Liberties === 'undefined') return;
 
-  // 2. Estimation (Donut Chart)
+  // 2. Estimation (Defrag Chart)
   const estResult = BoardEstimate.estimate(boardState, { komi: 6.5, handicap: 0 });
+  let aMap = estResult.areaMap;
+  
+  // Calculate continuous influence to find Conflicting areas
+  let data = BoardEstimate.fromBoard(boardState);
+  let deadMap = BoardEstimate.detectDeadStonesHeuristic(data);
+  for (let y = 0; y < data.length; y++) {
+      for (let x = 0; x < data[y].length; x++) {
+          if (deadMap[y][x]) data[y][x] = 0;
+      }
+  }
+  let infMap = BoardEstimate.influenceMap(data, {discrete: false});
+  
+  // Flatten maps for easier 1D rendering
+  let flattenedArea = [];
+  let flattenedInf = [];
+  for (let y = 0; y < 19; y++) {
+      for (let x = 0; x < 19; x++) {
+          flattenedArea.push(aMap[y][x]);
+          flattenedInf.push(infMap[y][x]);
+      }
+  }
+
   const bArea = estResult.score.area[0];
   const wArea = estResult.score.area[1];
-  const totalArea = bArea + wArea || 1;
-  const bPct = Math.round((bArea / totalArea) * 100);
-  const wPct = 100 - bPct;
   
-  if (document.getElementById('est-b-pct')) document.getElementById('est-b-pct').innerText = bPct + '%';
-  if (document.getElementById('est-w-pct')) document.getElementById('est-w-pct').innerText = wPct + '%';
   if (document.getElementById('est-b-pts')) document.getElementById('est-b-pts').innerText = bArea;
   if (document.getElementById('est-w-pts')) document.getElementById('est-w-pts').innerText = wArea;
 
-  // Draw Donut Chart
-  const dCanvas = document.getElementById('donutChart');
+  // Draw Defrag Chart
+  const dCanvas = document.getElementById('defragChart');
   if (dCanvas) {
     const ctx = dCanvas.getContext('2d');
-    const x = dCanvas.width / 2;
-    const y = dCanvas.height / 2;
-    const radius = 20; // scaled down from 30
-    const thickness = 10; // scaled down from 12
-    
     ctx.clearRect(0, 0, dCanvas.width, dCanvas.height);
     
-    // Black Segment
-    ctx.beginPath();
-    ctx.arc(x, y, radius, -Math.PI / 2, (-Math.PI / 2) + (Math.PI * 2 * (bPct / 100)));
-    ctx.lineWidth = thickness;
-    ctx.strokeStyle = '#3b82f6'; // Blue
-    ctx.stroke();
+    const blockSize = 6;
+    const gap = 1;
+    const cols = 38; // 38 * 7 = 266px width
+    // 361 total blocks -> 9.5 rows
     
-    // White Segment
-    ctx.beginPath();
-    ctx.arc(x, y, radius, (-Math.PI / 2) + (Math.PI * 2 * (bPct / 100)), -Math.PI / 2 + Math.PI * 2);
-    ctx.lineWidth = thickness;
-    ctx.strokeStyle = '#8b5cf6'; // Purple
-    ctx.stroke();
+    let col = 0;
+    let row = 0;
+    
+    for (let i = 0; i < 361; i++) {
+        let areaVal = flattenedArea[i];
+        let infVal = flattenedInf[i];
+        
+        let color = '#374151'; // Gray (Neutral)
+        if (areaVal === 1) {
+            color = '#3b82f6'; // Blue for Black territory (matches mockup)
+        } else if (areaVal === -1) {
+            color = '#ffffff'; // White for White territory
+        }
+        
+        // Conflicting condition: neutral area but hotly contested influence
+        if (areaVal === 0 && Math.abs(infVal) > 0.05 && Math.abs(infVal) < 0.8) {
+            color = '#ef4444'; // Red for Conflicting
+        }
+
+        let xPos = col * (blockSize + gap);
+        let yPos = row * (blockSize + gap);
+        
+        ctx.fillStyle = color;
+        ctx.fillRect(xPos, yPos, blockSize, blockSize);
+        
+        col++;
+        if (col >= cols) {
+            col = 0;
+            row++;
+        }
+    }
   }
 
   // 3. Liberties & Combat Volatility
