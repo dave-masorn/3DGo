@@ -1028,7 +1028,51 @@ body {
 /* TABLET & MOBILE (<1024px) */
 @media (max-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1fr; /* Stack right panel below board */
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+    padding: 0;
+  }
+  
+  /* Make the board stretch edge-to-edge on mobile */
+  .col-center {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .col-right {
+    padding: 12px;
+    flex-shrink: 0; /* Keep analytics height */
+    overflow-y: auto;
+  }
+
+  .mobile-board-borders {
+    border-top: 1px solid rgba(255,165,0,0.5) !important;
+    border-bottom: 1px solid rgba(255,165,0,0.5) !important;
+    background: #0f111a;
+  }
+
+  .widget.mobile-board-borders {
+    margin: 0 -12px !important;
+    width: calc(100% + 24px) !important;
+    padding: 16px 0 !important;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .board-header, .board-controls {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  .board-container {
+    border-radius: 0;
+    flex: 1;
+    min-height: 0 !important;
   }
   
   #header {
@@ -1080,7 +1124,6 @@ body {
   
   .board-container {
     border-radius: 0;
-    min-height: calc(100vh - 220px);
   }
 
   /* SIDEBAR AS OVERLAY */

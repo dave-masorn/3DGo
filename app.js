@@ -2096,6 +2096,10 @@ window.startOverlayPlayAI = function() {
     setTimeout(() => uploadOverlay.style.display = 'none', 300);
   }
 
+  if (document.getElementById('top-bar-title')) {
+    document.getElementById('top-bar-title').style.display = 'none';
+  }
+
   if (!playModeEnabled) togglePlayMode();
 };
 
