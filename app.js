@@ -1489,6 +1489,14 @@ function parseSGF(text) {
   
   // Overlay has been migrated to landing page
   
+  // Setup SGF Layout
+  if(document.querySelector('.col-left')) document.querySelector('.col-left').style.display = 'none';
+  if(document.querySelector('.col-center')) document.querySelector('.col-center').style.display = 'flex';
+  if(document.querySelector('.col-right')) document.querySelector('.col-right').style.display = 'flex';
+  if(document.querySelector('.player-banner')) document.querySelector('.player-banner').style.display = 'flex';
+  if(document.querySelector('.new-toolbar')) document.querySelector('.new-toolbar').style.display = 'flex';
+  if(document.getElementById('replay-controls')) document.getElementById('replay-controls').style.display = 'flex';
+
   // Reset and play
   initBoard();
   currentMoveIndex = -1;
@@ -1497,7 +1505,57 @@ function parseSGF(text) {
   captureHistory = [];
   
   populateMoveHistory();
+  renderTimelineDots();
   goToMove(moveHistory.length - 1);
+}
+
+function renderTimelineDots() {
+    const container = document.getElementById('timeline-dots-container');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const totalMoves = moveHistory.length;
+    if (totalMoves === 0) return;
+    
+    // We only want a maximum number of dots, say 15, to fit visually
+    const maxDots = 15;
+    const step = Math.max(1, Math.floor(totalMoves / maxDots));
+    
+    for (let i = 0; i < totalMoves; i += step) {
+        const dot = document.createElement('div');
+        dot.className = 'timeline-dot';
+        dot.dataset.index = i;
+        if (i % 10 === 0) dot.classList.add('purple'); // Every 10th move is purple
+        
+        dot.onclick = (e) => {
+            e.stopPropagation();
+            goToMove(i);
+        };
+        container.appendChild(dot);
+    }
+}
+
+function updateTimeline(idx) {
+    const container = document.getElementById('timeline-dots-container');
+    if (!container) return;
+    const dots = container.querySelectorAll('.timeline-dot');
+    
+    // Find closest dot to active index
+    let closestDot = null;
+    let minDiff = Infinity;
+    dots.forEach(dot => {
+        dot.classList.remove('active');
+        const dotIdx = parseInt(dot.dataset.index);
+        const diff = Math.abs(dotIdx - idx);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestDot = dot;
+        }
+    });
+    
+    if (closestDot) {
+        closestDot.classList.add('active');
+    }
 }
 
 function populateMoveHistory() {
@@ -1619,6 +1677,10 @@ function goToMove(targetIdx) {
   }
 
   updatePositionMarker(currentMoveIndex);
+  
+  if (typeof updateTimeline === 'function') {
+      updateTimeline(currentMoveIndex);
+  }
 }
 
 // ---- 3D Rendering ----

@@ -150,8 +150,9 @@ window.addEventListener('unhandledrejection', function(event) {
     </header>
 
     <!-- NEW MOBILE TOP BAR -->
-    <div class="mobile-top-bar">
-      <i class="ph ph-sign-out exit-icon" onclick="window.location.href='index.html'"></i>
+    <div class="mobile-top-bar" id="mobile-top-bar" style="justify-content: space-between;">
+      <div id="top-bar-title" style="color: #10b981; font-size: 24px; font-weight: 300; margin-left: 8px;">SGF</div>
+      <i class="ph ph-sign-out exit-icon" style="color: #ec4899;" onclick="window.location.href='index.html'"></i>
     </div>
 
     <!-- DASHBOARD GRID -->
@@ -245,54 +246,43 @@ window.addEventListener('unhandledrejection', function(event) {
             <span id="ms-counter">-- ms</span>
           </div>
         
-        <div class="board-controls" style="display:none;">
-            <!-- Left Group -->
-            <div style="display: flex; gap: 4px;">
-                <div class="b-ctrl-btn" id="btn-replay-first" title="First move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+        <div class="board-controls" id="replay-controls" style="display:none; flex-direction: column; gap: 16px;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%; gap: 8px;">
+                <div class="b-ctrl-btn" id="btn-replay-first" title="First move" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-line-left" style="font-size: 16px;"></i>
                 </div>
-                <div class="b-ctrl-btn" id="btn-replay-back5" title="Back 5 moves" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"></polyline><polyline points="18 17 13 12 18 7"></polyline></svg>
+                <div class="b-ctrl-btn" id="btn-replay-back5" title="Back 5 moves" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-double-left" style="font-size: 16px;"></i>
                 </div>
-                <div class="b-ctrl-btn" id="btn-replay-prev" title="Previous move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <div class="b-ctrl-btn" id="btn-replay-prev" title="Previous move" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-left" style="font-size: 16px;"></i>
+                </div>
+                
+                <div class="b-ctrl-btn btn-play-glowing" id="btn-play" onclick="togglePlay()" style="width: 100px; height: 40px; border-radius: 20px; justify-content: center; padding: 0; margin: 0 4px;">
+                  <i class="ph ph-play" id="play-icon" style="color: #3b82f6;"></i>
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <span style="font-size:10px; font-weight: 600; color: #3b82f6; font-family: monospace;">1000 ms</span>
+                  </div>
+                </div>
+
+                <div class="b-ctrl-btn" id="btn-replay-next" title="Next move" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-right" style="font-size: 16px;"></i>
+                </div>
+                <div class="b-ctrl-btn" id="btn-replay-fwd5" title="Forward 5 moves" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-double-right" style="font-size: 16px;"></i>
+                </div>
+                <div class="b-ctrl-btn" id="btn-replay-last" title="To end" style="width: 40px; height: 40px; border-radius: 50%; justify-content: center; padding: 0;">
+                    <i class="ph ph-caret-line-right" style="font-size: 16px;"></i>
                 </div>
             </div>
             
-            <!-- Center KPI & Play -->
-            <div style="display: flex; align-items: center; gap: 12px; margin: 0 8px;">
-                <div class="b-ctrl-btn active" id="btn-play" onclick="togglePlay()">
-                  <i class="ph ph-play" id="play-icon"></i>
-                  <div style="display:flex; align-items:center; gap:2px;">
-                    <input type="number" id="play-delay" value="1000" step="100" min="100" style="width:40px; background:transparent; border:none; color:inherit; font-size:10px; text-align:right; outline:none; font-family:monospace;" onchange="updateDelay(event)" onclick="event.stopPropagation()">
-                    <span style="font-size:10px;">ms</span>
-                  </div>
+            <div class="timeline-slider">
+                <div class="timeline-track"></div>
+                <div class="timeline-dots-container" id="timeline-dots-container">
+                    <!-- Dots generated by JS -->
                 </div>
             </div>
-
-            <!-- Right Group -->
-            <div style="display: flex; gap: 4px;">
-                <div class="b-ctrl-btn" id="btn-replay-next" title="Next move" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-fwd5" title="Forward 5 moves" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
-                </div>
-                <div class="b-ctrl-btn" id="btn-replay-last" title="To end" style="padding: 6px 12px; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-                </div>
-            </div>
-            <div class="b-ctrl-btn" id="btn-cam-auto-group" style="margin-left: auto; padding: 0 6px 0 16px; gap: 8px;">
-                <div id="btn-cam-auto-old" onclick="toggleAutoCam()" style="display: flex; align-items: center; gap: 6px; cursor: pointer; height: 100%;">
-                    <i class="ph ph-video-camera"></i><span>Auto-Cam</span>
-                </div>
-                <div style="width: 1px; height: 16px; background: var(--panel-border);"></div>
-                <div id="btn-cam-hoshi-old" onclick="toggleHoshiCam()" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none;" title="Toggle Hoshi (Star Focus)">
-                    <i class="ph ph-crosshair" id="hoshi-icon-old" style="font-size: 18px; color: var(--text-muted);"></i>
-                </div>
-            </div>
-            <div class="b-ctrl-btn" id="btn-fx-old" style="display:none;"></div>
-          </div>
+        </div>
         </div>
       </div>
 
