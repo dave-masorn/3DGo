@@ -2483,6 +2483,7 @@ window.switchTab = function(tabName) {
 };
 
 function updateCameraFov() {
+  const container = document.getElementById('three-container');
   if (!camera || !container) return;
   const baseVerticalFov = 42; 
   if (camera.aspect < 1.2) {
