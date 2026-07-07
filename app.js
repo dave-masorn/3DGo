@@ -1453,6 +1453,8 @@ function parseSGF(text) {
   const pw = getProp('PW') || 'White Player';
   const br = getProp('BR') || '? Dan';
   const wr = getProp('WR') || '? Dan';
+  const re = getProp('RE');
+  window.sgfResult = re ? re : null;
 
   document.getElementById('player-black-name').innerText = pb;
   document.getElementById('player-black-rank').innerText = br;
@@ -1835,6 +1837,31 @@ function runDiagnostics() {
   // 1. Basic Stats Update
   if (document.getElementById('board-move-num')) {
     document.getElementById('board-move-num').innerText = currentMoveIndex + 1;
+  }
+  
+  const statusPill = document.getElementById('game-status-pill');
+  if (statusPill) {
+      if (playModeEnabled) {
+          statusPill.innerText = "Game in Progress";
+          statusPill.style.background = "rgba(6, 182, 212, 0.2)";
+          statusPill.style.color = "var(--accent-cyan)";
+      } else {
+          if (currentMoveIndex >= moveHistory.length - 1 && moveHistory.length > 0) {
+              if (window.sgfResult) {
+                  statusPill.innerText = "Result: " + window.sgfResult;
+                  statusPill.style.background = "rgba(139, 92, 246, 0.2)"; // Purple
+                  statusPill.style.color = "var(--accent-purple)";
+              } else {
+                  statusPill.innerText = "Game Ended";
+                  statusPill.style.background = "rgba(156, 163, 175, 0.2)"; // Gray
+                  statusPill.style.color = "var(--text-muted)";
+              }
+          } else {
+              statusPill.innerText = "Reviewing";
+              statusPill.style.background = "rgba(59, 130, 246, 0.2)"; // Blue
+              statusPill.style.color = "#60a5fa";
+          }
+      }
   }
   if (document.getElementById('black-caps')) document.getElementById('black-caps').innerText = capturedByBlack;
   if (document.getElementById('white-caps')) document.getElementById('white-caps').innerText = capturedByWhite;

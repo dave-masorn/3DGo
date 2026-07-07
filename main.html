@@ -222,7 +222,7 @@ window.addEventListener('unhandledrejection', function(event) {
         <div class="widget" style="flex:1; display:flex; flex-direction:column; padding:16px;">
           <div class="board-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 12px;">
             <div class="board-status" style="display:flex; align-items:center; gap:12px;">
-              <div class="status-pill">Game in Progress</div>
+              <div class="status-pill" id="game-status-pill">Game in Progress</div>
               <span style="font-size: 13px; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; white-space: nowrap;">Move: <span id="replayer-move-kpi">0 / 0</span></span>
             </div>
             
@@ -335,6 +335,27 @@ window.addEventListener('unhandledrejection', function(event) {
             </div>
           </div>
         </div>
+
+        <div class="widget territory-widget" style="margin-top: 16px;">
+          <div class="wr-header">
+            <span style="font-weight:600;">Territory Estimation</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-around; margin-top: 16px; padding-bottom: 8px;">
+            <div style="text-align: center; width: 60px;">
+              <div style="color: #3b82f6; font-size: 20px; font-weight: 700;" id="est-b-pct">--%</div>
+              <div style="color: var(--text-muted); font-size: 11px;">Black <span id="est-b-pts">0</span></div>
+            </div>
+            
+            <div style="position: relative; width: 60px; height: 60px;">
+                <canvas id="donutChart" width="60" height="60" style="position: absolute; top:0; left:0;"></canvas>
+            </div>
+            
+            <div style="text-align: center; width: 60px;">
+              <div style="color: white; font-size: 20px; font-weight: 700;" id="est-w-pct">--%</div>
+              <div style="color: var(--text-muted); font-size: 11px;">White <span id="est-w-pts">0</span></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -346,7 +367,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.1.053"></script>
+<script defer src="libs/OrbitControls.js?v=0.1.054"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -355,7 +376,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.1.053"></script>
+<script defer src="app.js?v=0.1.054"></script>
 
 </body>
 </html>
