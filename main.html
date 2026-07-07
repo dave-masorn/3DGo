@@ -230,7 +230,7 @@ window.addEventListener('unhandledrejection', function(event) {
             <div class="tb-right">
                 <div class="tb-btn-group">
                     <button class="tb-btn" id="btn-cam-auto" onclick="toggleAutoCam()"><i class="ph ph-video-camera"></i> Auto-Cam</button>
-                    <button class="tb-btn-icon"><i class="ph ph-gear"></i></button>
+                    <button class="tb-btn-icon" id="btn-cam-hoshi" onclick="toggleHoshiCam()"><i class="ph ph-crosshair" id="hoshi-icon"></i></button>
                     <button class="tb-btn" id="btn-fx" onclick="toggleFx()"><i class="ph ph-magic-wand"></i> VFX</button>
                 </div>
             </div>
@@ -283,12 +283,12 @@ window.addEventListener('unhandledrejection', function(event) {
                 </div>
             </div>
             <div class="b-ctrl-btn" id="btn-cam-auto-group" style="margin-left: auto; padding: 0 6px 0 16px; gap: 8px;">
-                <div id="btn-cam-auto" onclick="toggleAutoCam()" style="display: flex; align-items: center; gap: 6px; cursor: pointer; height: 100%;">
+                <div id="btn-cam-auto-old" onclick="toggleAutoCam()" style="display: flex; align-items: center; gap: 6px; cursor: pointer; height: 100%;">
                     <i class="ph ph-video-camera"></i><span>Auto-Cam</span>
                 </div>
                 <div style="width: 1px; height: 16px; background: var(--panel-border);"></div>
-                <div id="btn-cam-hoshi" onclick="toggleHoshiCam()" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none;" title="Toggle Hoshi (Star Focus)">
-                    <i class="ph ph-crosshair" id="hoshi-icon" style="font-size: 18px; color: var(--text-muted);"></i>
+                <div id="btn-cam-hoshi-old" onclick="toggleHoshiCam()" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; transition: all 0.2s; opacity: 0.4; pointer-events: none;" title="Toggle Hoshi (Star Focus)">
+                    <i class="ph ph-crosshair" id="hoshi-icon-old" style="font-size: 18px; color: var(--text-muted);"></i>
                 </div>
             </div>
             <div class="b-ctrl-btn" id="btn-fx-old" style="display:none;"></div>
@@ -390,7 +390,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.1.055"></script>
+<script defer src="libs/OrbitControls.js?v=0.1.056"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -399,7 +399,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.1.055"></script>
+<script defer src="app.js?v=0.1.056"></script>
 
 </body>
 </html>
