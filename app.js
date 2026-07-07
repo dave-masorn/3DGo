@@ -1933,45 +1933,54 @@ function runDiagnostics() {
     const ctx = dCanvas.getContext('2d');
     ctx.clearRect(0, 0, dCanvas.width, dCanvas.height);
     
-    let col = 0;
-    let row = 0;
-    
     let cntB = 0, cntW = 0, cntC = 0, cntU = 0;
     
-    // Start drawing at offset to account for CSS padding inside canvas
-    const xOffset = 2;
-    const yOffset = 2;
-    
+    // First pass: categorize all 361 points
+    let blocks = [];
     for (let i = 0; i < 361; i++) {
         let areaVal = flattenedArea[i];
         let infVal = flattenedInf[i];
         
-        let color = '#6b7280'; // Unoccupied (Gray)
         let type = 'U';
-        
         if (areaVal === 1) {
-            color = '#000000'; // Black territory
             type = 'B';
+            cntB++;
         } else if (areaVal === -1) {
-            color = '#ffffff'; // White territory
             type = 'W';
+            cntW++;
         } else if (Math.abs(infVal) > 0.05 && Math.abs(infVal) < 0.8) {
-            color = '#ef4444'; // Conflicting (Red)
             type = 'C';
+            cntC++;
+        } else {
+            cntU++;
         }
+        blocks.push(type);
+    }
+    
+    // Sort blocks: Black -> Conflicting -> White -> Unoccupied
+    const typeOrder = { 'B': 1, 'C': 2, 'W': 3, 'U': 4 };
+    blocks.sort((a, b) => typeOrder[a] - typeOrder[b]);
+
+    // Start drawing at offset to account for CSS padding inside canvas
+    const xOffset = 2;
+    const yOffset = 2;
+    
+    let col = 0;
+    let row = 0;
+    
+    for (let i = 0; i < 361; i++) {
+        let type = blocks[i];
+        let color = '#6b7280'; // Unoccupied (Gray)
         
-        if (type === 'B') cntB++;
-        else if (type === 'W') cntW++;
-        else if (type === 'C') cntC++;
-        else cntU++;
+        if (type === 'B') color = '#000000'; // Black
+        else if (type === 'W') color = '#ffffff'; // White
+        else if (type === 'C') color = '#ef4444'; // Conflicting (Red)
 
         let xPos = xOffset + col * (blockSize + gap);
         let yPos = yOffset + row * (blockSize + gap);
         
         ctx.fillStyle = color;
         ctx.fillRect(xPos, yPos, blockSize, blockSize);
-        
-        // Add a subtle border to blocks for depth, if needed (mockup shows them fairly solid though)
         
         col++;
         if (col >= cols) {
