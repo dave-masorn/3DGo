@@ -2403,6 +2403,7 @@ window.switchTab = function(tabName) {
     } else if (tabName === 'territory') {
         document.getElementById('tab-panel-territory').style.display = 'block';
         if(tabs[1]) tabs[1].classList.add('active');
+        if (typeof updateDiagnostics === 'function') updateDiagnostics();
     }
 };
 

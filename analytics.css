@@ -264,6 +264,7 @@ body {
     cursor: pointer;
     text-align: center;
     padding: 2px;
+    color: var(--text-muted);
 }
 
 /* TE Detailed Stats */
@@ -293,7 +294,7 @@ body {
 .bottom-tab.active {
     background: rgba(6, 182, 212, 0.2);
     border-color: var(--accent-cyan);
-    color: #fff;
+    color: var(--accent-cyan);
 }
 .bottom-tab-icon {
     font-size: 24px;
