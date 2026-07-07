@@ -14,8 +14,8 @@
     <!-- Big glowing container card -->
     <div class="glass-container" style="position: relative;">
       <div id="version-stamp" style="position: absolute; top: -32px; right: 16px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 10;">
-        Deployed Ver.: 0.2.001<br>
-        Last Update: Jul 7, 2026 : 21:05:12
+        Deployed Ver.: 0.2.002<br>
+        Last Update: Jul 7, 2026 : 22:07:42
       </div>
       
       <!-- STEP 1 -->
@@ -112,11 +112,11 @@
       if (document.getElementById('btn-random').classList.contains('active')) {
          aiColor = Math.random() > 0.5 ? 'B' : 'W';
       }
-      window.location.href = `main.html?action=play_ai&color=${aiColor}&v=0.2.001`;
+      window.location.href = `main.html?action=play_ai&color=${aiColor}&v=0.2.003`;
     }
 
     function playSample() {
-      window.location.href = `main.html?action=sample&v=0.2.001`;
+      window.location.href = `main.html?action=sample&v=0.2.003`;
     }
 
     document.getElementById('file-input').addEventListener('change', function(e) {
@@ -125,7 +125,7 @@
       const reader = new FileReader();
       reader.onload = function(e) {
         sessionStorage.setItem('uploaded_sgf', e.target.result);
-        window.location.href = 'main.html?action=upload&v=0.2.001';
+        window.location.href = 'main.html?action=upload&v=0.2.003';
       };
       reader.readAsText(file);
     });

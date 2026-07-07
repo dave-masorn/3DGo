@@ -2349,6 +2349,23 @@ if (document.readyState === 'loading') {
     bootApp();
 }
 
+window.switchTab = function(tabName) {
+    const tabs = document.querySelectorAll('.bottom-tab');
+    tabs.forEach(t => t.classList.remove('active'));
+    
+    document.getElementById('tab-panel-volatility').style.display = 'none';
+    document.getElementById('tab-panel-territory').style.display = 'none';
+    // other panels when added
+    
+    if (tabName === 'volatility') {
+        document.getElementById('tab-panel-volatility').style.display = 'block';
+        if(tabs[0]) tabs[0].classList.add('active'); 
+    } else if (tabName === 'territory') {
+        document.getElementById('tab-panel-territory').style.display = 'block';
+        if(tabs[1]) tabs[1].classList.add('active');
+    }
+};
+
 function updateCameraFov() {
   if (!camera) return;
   const baseVerticalFov = 42; 
