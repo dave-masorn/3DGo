@@ -1,0 +1,17 @@
+{
+  "name": "3D Go Analytics",
+  "short_name": "3D Go",
+  "description": "3D Go Analytics and AI Playground",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512 any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
