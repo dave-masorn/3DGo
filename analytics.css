@@ -1124,15 +1124,46 @@ body {
     flex-direction: column;
   }
   
-  /* Compress UI elements to give board more height */
-  .player-banner { padding: 8px 12px; margin-bottom: 8px !important; }
-  .new-toolbar { padding: 6px 12px; margin-bottom: 8px !important; }
-  .bottom-tab-bar { padding: 8px; gap: 4px; }
-  .bottom-tab { padding: 4px; }
-  .mobile-top-bar { height: 44px; }
-  .col-right > .widget { padding: 12px; margin-bottom: 8px !important; }
-  .wr-header { margin-bottom: 8px !important; }
-  .wr-graph { height: 50px !important; margin-bottom: 8px !important; }
+  /* --- AGGRESSIVE MOBILE HEIGHT COMPRESSION --- */
+  #mobile-top-bar { display: none !important; }
+  .mobile-exit { display: block !important; }
+  
+  .player-banner {
+    padding: 2px 8px !important;
+    min-height: 28px !important;
+  }
+  .pb-left, .pb-right { font-size: 13px !important; }
+  #board-move-num-orb { width: 24px !important; height: 24px !important; font-size: 11px !important; }
+
+  .new-toolbar {
+    padding: 2px 8px !important;
+    margin-bottom: 2px !important;
+  }
+  .tb-btn { padding: 4px 8px !important; font-size: 11px !important; }
+  
+  .col-right > .widget { 
+    padding: 6px !important; 
+    margin-bottom: 2px !important; 
+  }
+  
+  /* Territory Widget Compression */
+  .wr-header { margin-bottom: 4px !important; font-size: 12px !important; }
+  #defragChart { height: 40px !important; }
+  .te-legend-container { margin-top: 4px !important; gap: 4px !important; }
+  .te-legend-item { font-size: 9px !important; }
+  .te-stat-num { font-size: 16px !important; }
+  .te-stat-pct { font-size: 9px !important; }
+  
+  .bottom-tab-bar {
+    height: 40px !important;
+    padding: 2px !important;
+  }
+  .bottom-tab i { font-size: 16px !important; margin-bottom: 0 !important; }
+  .bottom-tab span { font-size: 9px !important; }
+
+  .col-center {
+    flex: 1 1 350px !important; /* Force board to take at least 350px if possible */
+  }
   
   .col-center > .widget {
     padding: 16px 0 !important;
