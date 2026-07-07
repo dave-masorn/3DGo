@@ -2485,14 +2485,19 @@ window.switchTab = function(tabName) {
 function updateCameraFov() {
   const container = document.getElementById('three-container');
   if (!camera || !container) return;
-  const baseVerticalFov = 42; 
-  if (camera.aspect < 1.2) {
-    // For portrait/mobile, lock the horizontal FOV to tightly frame the board
-    const targetHorizontalFovRad = THREE.MathUtils.degToRad(28);
+  
+  const isMobile = window.innerWidth <= 768;
+
+  if (camera.aspect < 1.1) {
+    // Mobile/Portrait: fit to width tightly to maximize board size
+    const targetHorizontalFovDeg = isMobile ? 24 : 30; // 24 deg is extremely tight/large
+    const targetHorizontalFovRad = THREE.MathUtils.degToRad(targetHorizontalFovDeg);
     const newVerticalFovRad = 2 * Math.atan(Math.tan(targetHorizontalFovRad / 2) / camera.aspect);
     camera.fov = THREE.MathUtils.radToDeg(newVerticalFovRad);
   } else {
-    camera.fov = baseVerticalFov;
+    // Desktop/Landscape: fit to height with margins
+    camera.fov = isMobile ? 32 : 42;
   }
+  
   camera.updateProjectionMatrix();
 }
