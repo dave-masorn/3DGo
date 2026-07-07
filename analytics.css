@@ -1148,8 +1148,8 @@ body {
   .tb-btn { padding: 4px 8px !important; font-size: 11px !important; }
   
   .col-right {
-    flex: 0 0 140px !important; /* STRICTLY RIGID HEIGHT */
-    height: 140px !important;
+    flex: 0 0 170px !important; /* STRICTLY RIGID HEIGHT */
+    height: 170px !important;
     overflow: hidden !important;
     padding: 0 4px !important;
   }
@@ -1157,7 +1157,8 @@ body {
   .col-right > .widget { 
     padding: 4px 8px !important; 
     margin-bottom: 0 !important;
-    height: 100% !important;
+    flex: 1 !important;
+    height: auto !important;
   }
   
   /* Territory Widget Compression */
