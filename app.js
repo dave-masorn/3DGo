@@ -2104,7 +2104,8 @@ window.startOverlayPlayAI = function() {
   }
 
   if (document.getElementById('top-bar-title')) {
-    document.getElementById('top-bar-title').style.display = 'none';
+    document.getElementById('top-bar-title').innerText = 'Play vs AI';
+    document.getElementById('top-bar-title').style.display = 'block';
   }
 
   if (!playModeEnabled) togglePlayMode();
