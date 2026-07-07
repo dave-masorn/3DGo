@@ -343,8 +343,38 @@ window.addEventListener('unhandledrejection', function(event) {
               <span style="color:white; font-weight:600;">W <span id="est-w-pts">0</span></span>
             </div>
           </div>
-          <div style="width: 100%; display: flex; justify-content: center;">
-              <canvas id="defragChart" width="266" height="70" style="background: #11141c; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px;"></canvas>
+          <div id="defrag-container" style="width: 100%; display: flex; justify-content: center; position: relative;">
+              <canvas id="defragChart" style="width: 100%; background: #11141c; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px; box-sizing: border-box;"></canvas>
+          </div>
+          
+          <div class="te-legend-container" style="margin-top: 16px; display: flex; flex-direction: column; gap: 24px;">
+              <!-- Legend Row -->
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
+                  <div class="te-legend-item"><div class="te-legend-box" style="background:#000000; border:1px solid #374151;"></div><span>Black</span></div>
+                  <div class="te-legend-item"><div class="te-legend-box" style="background:#ffffff;"></div><span>White</span></div>
+                  <div class="te-legend-item"><div class="te-legend-box" style="background:#ef4444;"></div><span>Conflicting</span></div>
+                  <div class="te-legend-item"><div class="te-legend-box" style="background:#6b7280;"></div><span>Unoccupied</span></div>
+              </div>
+              
+              <!-- Stats Row -->
+              <div style="display: flex; justify-content: space-between; text-align: center;">
+                  <div class="te-stat-col" style="flex:1;">
+                      <div class="te-stat-num" id="te-cnt-b">0</div>
+                      <div class="te-stat-pct" id="te-pct-b">0.0%</div>
+                  </div>
+                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
+                      <div class="te-stat-num" id="te-cnt-w">0</div>
+                      <div class="te-stat-pct" id="te-pct-w">0.0%</div>
+                  </div>
+                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
+                      <div class="te-stat-num" id="te-cnt-c">0</div>
+                      <div class="te-stat-pct" id="te-pct-c">0.0%</div>
+                  </div>
+                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
+                      <div class="te-stat-num" id="te-cnt-u">0</div>
+                      <div class="te-stat-pct" id="te-pct-u">0.0%</div>
+                  </div>
+              </div>
           </div>
         </div>
 
@@ -383,7 +413,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.2.003"></script>
+<script defer src="libs/OrbitControls.js?v=0.2.004"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -392,7 +422,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.2.003"></script>
+<script defer src="app.js?v=0.2.004"></script>
 
 </body>
 </html>

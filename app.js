@@ -546,6 +546,7 @@ function initThree() {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     updateCameraFov();
+    if(typeof updateDiagnostics === 'function') updateDiagnostics();
   });
 
   // Right-click toggle-drag to pan (following demo/right-click-move-obj.html)
@@ -1910,47 +1911,86 @@ function runDiagnostics() {
   if (document.getElementById('est-b-pts')) document.getElementById('est-b-pts').innerText = bArea;
   if (document.getElementById('est-w-pts')) document.getElementById('est-w-pts').innerText = wArea;
 
-  // Draw Defrag Chart
+  // Draw Defrag Chart & Calculate Stats
   const dCanvas = document.getElementById('defragChart');
-  if (dCanvas) {
+  if (dCanvas && dCanvas.parentElement) {
+    // Make canvas responsive
+    const containerWidth = dCanvas.parentElement.clientWidth;
+    // Set actual canvas pixel dimensions to match CSS width
+    dCanvas.width = containerWidth;
+    
+    const gap = 1;
+    const cols = 38; 
+    const rows = Math.ceil(361 / cols);
+    
+    // Available width for blocks: containerWidth - padding (2px on each side) - total gaps
+    const availableWidth = containerWidth - 4 - ((cols - 1) * gap);
+    const blockSize = Math.floor(availableWidth / cols);
+    
+    // Adjust height based on block size
+    dCanvas.height = rows * blockSize + (rows - 1) * gap + 4; // +4 for padding
+    
     const ctx = dCanvas.getContext('2d');
     ctx.clearRect(0, 0, dCanvas.width, dCanvas.height);
     
-    const blockSize = 6;
-    const gap = 1;
-    const cols = 38; // 38 * 7 = 266px width
-    // 361 total blocks -> 9.5 rows
-    
     let col = 0;
     let row = 0;
+    
+    let cntB = 0, cntW = 0, cntC = 0, cntU = 0;
+    
+    // Start drawing at offset to account for CSS padding inside canvas
+    const xOffset = 2;
+    const yOffset = 2;
     
     for (let i = 0; i < 361; i++) {
         let areaVal = flattenedArea[i];
         let infVal = flattenedInf[i];
         
-        let color = '#374151'; // Gray (Neutral)
+        let color = '#6b7280'; // Unoccupied (Gray)
+        let type = 'U';
+        
         if (areaVal === 1) {
-            color = '#3b82f6'; // Blue for Black territory (matches mockup)
+            color = '#000000'; // Black territory
+            type = 'B';
         } else if (areaVal === -1) {
-            color = '#ffffff'; // White for White territory
+            color = '#ffffff'; // White territory
+            type = 'W';
+        } else if (Math.abs(infVal) > 0.05 && Math.abs(infVal) < 0.8) {
+            color = '#ef4444'; // Conflicting (Red)
+            type = 'C';
         }
         
-        // Conflicting condition: neutral area but hotly contested influence
-        if (areaVal === 0 && Math.abs(infVal) > 0.05 && Math.abs(infVal) < 0.8) {
-            color = '#ef4444'; // Red for Conflicting
-        }
+        if (type === 'B') cntB++;
+        else if (type === 'W') cntW++;
+        else if (type === 'C') cntC++;
+        else cntU++;
 
-        let xPos = col * (blockSize + gap);
-        let yPos = row * (blockSize + gap);
+        let xPos = xOffset + col * (blockSize + gap);
+        let yPos = yOffset + row * (blockSize + gap);
         
         ctx.fillStyle = color;
         ctx.fillRect(xPos, yPos, blockSize, blockSize);
+        
+        // Add a subtle border to blocks for depth, if needed (mockup shows them fairly solid though)
         
         col++;
         if (col >= cols) {
             col = 0;
             row++;
         }
+    }
+    
+    // Update Stats UI
+    if (document.getElementById('te-cnt-b')) {
+        document.getElementById('te-cnt-b').innerText = cntB;
+        document.getElementById('te-cnt-w').innerText = cntW;
+        document.getElementById('te-cnt-c').innerText = cntC;
+        document.getElementById('te-cnt-u').innerText = cntU;
+        
+        document.getElementById('te-pct-b').innerText = ((cntB / 361) * 100).toFixed(1) + '%';
+        document.getElementById('te-pct-w').innerText = ((cntW / 361) * 100).toFixed(1) + '%';
+        document.getElementById('te-pct-c').innerText = ((cntC / 361) * 100).toFixed(1) + '%';
+        document.getElementById('te-pct-u').innerText = ((cntU / 361) * 100).toFixed(1) + '%';
     }
   }
 

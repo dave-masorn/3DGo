@@ -263,9 +263,33 @@ body {
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    padding: 4px;
+    padding: 2px;
+}
+
+/* TE Detailed Stats */
+.te-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
     color: var(--text-muted);
 }
+.te-legend-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+.te-stat-num {
+    font-size: 20px;
+    font-weight: 500;
+    color: white;
+}
+.te-stat-pct {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
 .bottom-tab.active {
     background: rgba(6, 182, 212, 0.2);
     border-color: var(--accent-cyan);
