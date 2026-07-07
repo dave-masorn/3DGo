@@ -146,24 +146,18 @@ window.addEventListener('unhandledrejection', function(event) {
       <div class="header-actions">
         <button id="btn-max-vfx" class="btn-invite" style="background: transparent; border: 1px solid var(--accent-purple); color: var(--accent-purple);" onclick="toggleMaxVFX()">Max VFX: ON</button>
         <button id="btn-new-game" class="btn-new-game" onclick="handleNewGameClick()">New SGF</button>
-        <button class="btn-invite"><i class="ph ph-user-plus"></i> Invite</button>
-        <button class="icon-btn"><i class="ph ph-bell"></i></button>
-        <button class="icon-btn"><i class="ph ph-gear"></i></button>
-        <div class="user-profile">
-          <img src="favicon.svg" alt="User" style="background-color: var(--accent-blue); padding: 4px;">
-          <div>
-            <div class="name">User</div>
-            <div class="plan">Pro Plan</div>
-          </div>
-          <i class="ph ph-caret-down" style="color:var(--text-muted); font-size:12px; margin-left:8px;"></i>
-        </div>
       </div>
     </header>
+
+    <!-- NEW MOBILE TOP BAR -->
+    <div class="mobile-top-bar">
+      <i class="ph ph-sign-out exit-icon" onclick="window.location.href='index.html'"></i>
+    </div>
 
     <!-- DASHBOARD GRID -->
     <div class="dashboard-grid">
       
-      <!-- LEFT COL (Static Visual Placeholders to match concept) -->
+      <!-- LEFT COL (Hidden entirely for AI mode) -->
       <div class="col-left" style="display: none;">
         <div class="widget welcome-widget">
           <div class="welcome-header">
@@ -219,27 +213,39 @@ window.addEventListener('unhandledrejection', function(event) {
 
       <!-- CENTER COL (3D Board & Diagnostics) -->
       <div class="col-center">
-        <div class="widget" style="flex:1; display:flex; flex-direction:column; padding:16px;">
-          <div class="board-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap: wrap; gap: 12px;">
-            <div class="board-status" style="display:flex; align-items:center; gap:12px;">
-              <div class="status-pill" id="game-status-pill">Game in Progress</div>
-              <span style="font-size: 13px; font-weight: 600; color: var(--text-main); font-variant-numeric: tabular-nums; white-space: nowrap;">Move: <span id="replayer-move-kpi">0 / 0</span></span>
+        <!-- New Player Banner -->
+        <div class="player-banner">
+            <div class="pb-left" id="banner-player-name">Dave Masorn</div>
+            <div class="pb-center">
+               <div class="glowing-orb" id="board-move-num-orb">8</div>
             </div>
-            
-            <div style="display:flex; align-items:center; gap:16px;">
-              <div id="perf-monitor" style="font-size: 11px; font-family: monospace; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; padding-right: 16px; border-right: 1px solid var(--panel-border);">
-                <span id="fps-counter">-- FPS</span>
-                <span id="ms-counter">-- ms</span>
-              </div>
-              <button class="btn-settings"><i class="ph ph-gear"></i> Settings</button>
+            <div class="pb-right" id="banner-ai-name">KataGo</div>
+        </div>
+
+        <!-- New Toolbar -->
+        <div class="new-toolbar">
+            <div class="tb-left">
+                <button class="icon-btn-square" onclick="toggleSidebar()"><i class="ph ph-sidebar-simple"></i></button>
             </div>
-          </div>
-          
-          <div class="board-container" id="three-container">
+            <div class="tb-right">
+                <div class="tb-btn-group">
+                    <button class="tb-btn" id="btn-cam-auto" onclick="toggleAutoCam()"><i class="ph ph-video-camera"></i> Auto-Cam</button>
+                    <button class="tb-btn-icon"><i class="ph ph-gear"></i></button>
+                    <button class="tb-btn" id="btn-fx" onclick="toggleFx()"><i class="ph ph-magic-wand"></i> VFX</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="widget" style="flex:1; display:flex; flex-direction:column; padding:0; background:transparent; border:none; box-shadow:none;">
+          <div class="board-container mobile-board-borders" id="three-container" style="border-radius: 0;">
             <!-- WebGL Canvas goes here -->
           </div>
+          <div id="perf-monitor" style="display:none;">
+            <span id="fps-counter">-- FPS</span>
+            <span id="ms-counter">-- ms</span>
+          </div>
         
-        <div class="board-controls">
+        <div class="board-controls" style="display:none;">
             <!-- Left Group -->
             <div style="display: flex; gap: 4px;">
                 <div class="b-ctrl-btn" id="btn-replay-first" title="First move" style="padding: 6px 12px; justify-content: center;">
@@ -285,19 +291,20 @@ window.addEventListener('unhandledrejection', function(event) {
                     <i class="ph ph-crosshair" id="hoshi-icon" style="font-size: 18px; color: var(--text-muted);"></i>
                 </div>
             </div>
-            <div class="b-ctrl-btn" id="btn-fx" onclick="toggleFx()"><i class="ph ph-magic-wand"></i><span>VFX</span></div>
+            <div class="b-ctrl-btn" id="btn-fx-old" style="display:none;"></div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT COL (Analytics & History) -->
+      <!-- RIGHT COL (Analytics & Bottom Tabs) -->
       <div class="col-right">
-        <div class="widget" id="panel-black">
+        <!-- We hide the individual player cards as they are merged into the top banner -->
+        <div class="widget" id="panel-black" style="display:none;">
           <div class="player-card">
             <div class="p-card-left">
               <div class="p-stone black"></div>
               <div class="p-info">
-                <div class="name" id="player-black-name">Black (AI)</div>
+                <div class="name" id="player-black-name">Dave Masorn</div>
                 <div class="rank" id="player-black-rank">2 Dan</div>
               </div>
             </div>
@@ -305,38 +312,29 @@ window.addEventListener('unhandledrejection', function(event) {
           </div>
         </div>
 
-        <div class="widget" id="panel-white">
+        <div class="widget" id="panel-white" style="display:none;">
           <div class="player-card">
             <div class="p-card-left">
               <div class="p-stone white"></div>
               <div class="p-info">
-                <div class="name" id="player-white-name">White (You)</div>
-                <div class="rank" id="player-white-rank">3 Dan</div>
+                <div class="name" id="player-white-name">KataGo</div>
+                <div class="rank" id="player-white-rank">9 Dan</div>
               </div>
             </div>
             <div class="p-time"><i class="ph ph-chart-bar"></i> <span id="white-caps">0</span> caps</div>
           </div>
         </div>
 
-        <div class="widget winrate-widget">
+        <div class="widget winrate-widget" id="tab-panel-volatility">
           <div class="wr-header">
-            <span style="font-weight:600;">Volatility Index</span>
-            <span style="color:var(--accent-green);">● Live</span>
+            <span style="font-weight:600; color: #8b90a0; font-size: 11px;">Combat Volatility</span>
+            <span style="color:var(--accent-purple); font-size:12px; font-weight: 500;" id="volatility-text">Peaceful</span>
           </div>
+          <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;" id="volatility-val">0%</div>
           <div class="wr-graph"></div>
-          <div class="wr-stats">
-            <div class="wr-stat-box">
-              <span class="wr-stat-label">Combat Volatility</span>
-              <span class="wr-stat-val" id="volatility-val">48.7%</span>
-            </div>
-            <div class="wr-stat-box" style="text-align:right;">
-              <span class="wr-stat-label">Game State</span>
-              <span class="wr-stat-val" style="color:var(--accent-purple); font-size:14px;" id="volatility-text">Peaceful</span>
-            </div>
-          </div>
         </div>
 
-        <div class="widget territory-widget" style="margin-top: 16px;">
+        <div class="widget territory-widget" id="tab-panel-territory" style="display: none;">
           <div class="wr-header">
             <span style="font-weight:600;">Territory Estimation</span>
           </div>
@@ -356,6 +354,31 @@ window.addEventListener('unhandledrejection', function(event) {
             </div>
           </div>
         </div>
+
+        <!-- NEW BOTTOM TAB BAR -->
+        <div class="bottom-tab-bar">
+          <div class="bottom-tab active" onclick="switchTab('volatility')">
+            <i class="ph ph-chart-line-up bottom-tab-icon"></i>
+            <span class="bottom-tab-text">Volatility<br>Index</span>
+          </div>
+          <div class="bottom-tab" onclick="switchTab('territory')">
+            <i class="ph ph-chart-pie-slice bottom-tab-icon" style="color: #4b5563;"></i>
+            <span class="bottom-tab-text" style="color: #4b5563;">Territory<br>Estimation</span>
+          </div>
+          <div class="bottom-tab">
+            <i class="ph ph-target bottom-tab-icon" style="color: #4b5563;"></i>
+            <span class="bottom-tab-text" style="color: #4b5563;">Hint<br>(AI-based)</span>
+          </div>
+          <div class="bottom-tab">
+            <i class="ph ph-polygon bottom-tab-icon" style="color: #4b5563;"></i>
+            <span class="bottom-tab-text" style="color: #4b5563;">Dango</span>
+          </div>
+          <div class="bottom-tab">
+            <i class="ph ph-sword bottom-tab-icon" style="color: #4b5563;"></i>
+            <span class="bottom-tab-text" style="color: #4b5563;">Semeai</span>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -367,7 +390,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.1.054"></script>
+<script defer src="libs/OrbitControls.js?v=0.1.055"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -376,7 +399,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.1.054"></script>
+<script defer src="app.js?v=0.1.055"></script>
 
 </body>
 </html>

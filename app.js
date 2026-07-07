@@ -1461,6 +1461,13 @@ function parseSGF(text) {
   document.getElementById('player-white-name').innerText = pw;
   document.getElementById('player-white-rank').innerText = wr;
   
+  if (document.getElementById('banner-player-name')) {
+      document.getElementById('banner-player-name').innerText = pb;
+  }
+  if (document.getElementById('banner-ai-name')) {
+      document.getElementById('banner-ai-name').innerText = pw;
+  }
+  
   while ((match = moveRegex.exec(text)) !== null) {
     const color = match[1]; // B or W
     const coords = match[2];
@@ -1837,6 +1844,9 @@ function runDiagnostics() {
   // 1. Basic Stats Update
   if (document.getElementById('board-move-num')) {
     document.getElementById('board-move-num').innerText = currentMoveIndex + 1;
+  }
+  if (document.getElementById('board-move-num-orb')) {
+    document.getElementById('board-move-num-orb').innerText = currentMoveIndex + 1;
   }
   
   const statusPill = document.getElementById('game-status-pill');
