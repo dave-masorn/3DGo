@@ -1034,6 +1034,7 @@ body {
     display: flex;
     flex-direction: column;
     flex: 1;
+    height: auto;
     min-height: 0;
     overflow: hidden;
     padding: 0;
@@ -1048,9 +1049,12 @@ body {
     padding: 0;
   }
   .col-right {
-    padding: 12px;
+    padding: 8px;
     flex-shrink: 0; /* Keep analytics height */
     overflow-y: auto;
+  }
+  .col-right > .widget {
+    padding: 12px;
   }
 
   .mobile-board-borders {
@@ -1113,7 +1117,7 @@ body {
   
   #main {
     padding: 0;
-    gap: 8px; /* Compress gap */
+    gap: 0; /* No gap between sections to match architecture guide */
     overflow: hidden;
     flex: 1;
     display: flex;
@@ -1121,10 +1125,14 @@ body {
   }
   
   /* Compress UI elements to give board more height */
-  .player-banner { padding: 8px 12px; }
-  .new-toolbar { padding: 6px 12px; }
-  .bottom-tabs { padding: 4px 8px; gap: 4px; }
+  .player-banner { padding: 8px 12px; margin-bottom: 8px !important; }
+  .new-toolbar { padding: 6px 12px; margin-bottom: 8px !important; }
+  .bottom-tab-bar { padding: 8px; gap: 4px; }
+  .bottom-tab { padding: 4px; }
   .mobile-top-bar { height: 44px; }
+  .col-right > .widget { padding: 12px; margin-bottom: 8px !important; }
+  .wr-header { margin-bottom: 8px !important; }
+  .wr-graph { height: 50px !important; margin-bottom: 8px !important; }
   
   .col-center > .widget {
     padding: 16px 0 !important;
