@@ -2483,11 +2483,11 @@ window.switchTab = function(tabName) {
 };
 
 function updateCameraFov() {
-  if (!camera) return;
+  if (!camera || !container) return;
   const baseVerticalFov = 42; 
-  if (camera.aspect < 1.0) {
-    const baseVerticalFovRad = THREE.MathUtils.degToRad(baseVerticalFov);
-    const targetHorizontalFovRad = 2 * Math.atan(Math.tan(baseVerticalFovRad / 2) * 1.0);
+  if (camera.aspect < 1.2) {
+    // For portrait/mobile, lock the horizontal FOV to tightly frame the board
+    const targetHorizontalFovRad = THREE.MathUtils.degToRad(28);
     const newVerticalFovRad = 2 * Math.atan(Math.tan(targetHorizontalFovRad / 2) / camera.aspect);
     camera.fov = THREE.MathUtils.radToDeg(newVerticalFovRad);
   } else {

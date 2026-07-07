@@ -131,6 +131,7 @@ body {
     border-radius: 6px;
     padding: 4px;
     background: rgba(236, 72, 153, 0.1);
+    margin-left: auto;
 }
 
 .player-banner {
