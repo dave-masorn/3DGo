@@ -5,11 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Go Analytics</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="analytics.css?v=0.2.015">
+  <link rel="stylesheet" href="analytics.css?v=0.2.016">
   <link rel="stylesheet" href="libs/phosphor-regular.css">
   
 </head>
 <body>
+<div id="version-stamp" style="position: fixed; top: 8px; right: 8px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 99999; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; pointer-events: none; border: 1px solid rgba(251,191,36,0.3);">
+  Deployed Ver.: 0.2.016<br>
+  Last Update: Jul 8, 2026 : 01:42:00
+</div>
 <div id="debug-error" style="position:fixed; top:0; left:0; right:0; background:red; color:white; z-index:99999; padding:20px; font-family:monospace; display:none; white-space:pre-wrap;"></div>
 <script>
 function handleNewGameClick() {
@@ -403,7 +407,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.2.015"></script>
+<script defer src="libs/OrbitControls.js?v=0.2.016"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -412,7 +416,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.2.015"></script>
+<script defer src="app.js?v=0.2.016"></script>
 
 </body>
 </html>

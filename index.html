@@ -5,18 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D Go - Play vs AI</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="stylesheet" href="landing.css?v=0.1.038">
+  <link rel="stylesheet" href="landing.css?v=0.1.039">
   <link rel="stylesheet" href="libs/phosphor-regular.css">
 </head>
 <body>
+<div id="version-stamp" style="position: fixed; top: 8px; right: 8px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 99999; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; pointer-events: none; border: 1px solid rgba(251,191,36,0.3);">
+  Deployed Ver.: 0.2.017<br>
+  Last Update: Jul 8, 2026 : 01:42:00
+</div>
+
+<div class="landing-page">
   <main class="vertical-layout">
     
     <!-- Big glowing container card -->
     <div class="glass-container" style="position: relative;">
-      <div id="version-stamp" style="position: absolute; top: -32px; right: 16px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 10;">
-        Deployed Ver.: 0.2.015<br>
-        Last Update: Jul 8, 2026 : 01:38:00
-      </div>
+      <!-- Remove old relative version stamp -->
       
       <!-- STEP 1 -->
       <div class="step-section">
@@ -90,6 +93,7 @@
     </div>
 
   </main>
+</div>
   
   <script>
     function selectAIColor(color) {
@@ -112,20 +116,35 @@
       if (document.getElementById('btn-random').classList.contains('active')) {
          aiColor = Math.random() > 0.5 ? 'B' : 'W';
       }
-      window.location.href = `main.html?action=play_ai&color=${aiColor}&v=0.2.015`;
+      window.location.href = `main.html?action=play_ai&color=${aiColor}&v=0.2.017`;
     }
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const color = urlParams.get('color');
+    const isAiPlay = urlParams.get('action');
+    if (isAiPlay == 'play_ai') {
+      if (color) {
+        window.location.href = 'main.html?action=play_ai&color=' + color + '&v=0.2.017';
+      }
+    } 
+
     function playSample() {
-      window.location.href = `main.html?action=sample&v=0.2.015`;
+      window.location.href = `main.html?action=sample&v=0.2.017`;
     }
 
     document.getElementById('file-input').addEventListener('change', function(e) {
       const file = e.target.files[0];
+      function loadPastedSgf() {
+        const data = document.getElementById('sgf-textarea').value.trim();
+        if (!data) return;
+        sessionStorage.setItem('pastedSgf', data);
+        window.location.href = 'main.html?action=paste&v=0.2.017';
+      }
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
         sessionStorage.setItem('uploaded_sgf', e.target.result);
-        window.location.href = 'main.html?action=upload&v=0.2.015';
+        window.location.href = 'main.html?action=upload&v=0.2.017';
       };
       reader.readAsText(file);
     });
