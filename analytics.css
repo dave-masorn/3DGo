@@ -248,26 +248,51 @@ body {
     background: #11141c;
     border-top: 1px solid var(--panel-border);
     border-radius: 12px;
-    padding: 8px;
+    padding: 6px;
     gap: 4px;
-    margin-top: 16px;
+    margin-top: 8px;
+    /* Always fixed height — never grows */
+    flex-shrink: 0;
 }
 .bottom-tab {
     flex: 1;
-    aspect-ratio: 1/1;
-    max-height: 72px;
+    /* Fixed compact height — no aspect-ratio that causes tall squares on mobile */
+    height: 60px;
+    min-height: 60px;
+    max-height: 60px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     cursor: pointer;
     text-align: center;
-    padding: 2px;
+    padding: 4px 2px;
     color: var(--text-muted);
+    overflow: hidden;
+}
+.bottom-tab-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.bottom-tab-text {
+    font-size: 9px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    padding: 0 2px;
+}
+
+.bottom-tab.active {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
 }
 
 /* TE Detailed Stats */
@@ -292,19 +317,6 @@ body {
     font-size: 11px;
     color: var(--text-muted);
     margin-top: 4px;
-}
-
-.bottom-tab.active {
-    background: rgba(6, 182, 212, 0.2);
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
-}
-.bottom-tab-icon {
-    font-size: 24px;
-}
-.bottom-tab-text {
-    font-size: 9px;
-    line-height: 1.1;
 }
 
 .nav-menu {
@@ -1174,11 +1186,21 @@ body {
   #volatility-val { font-size: 16px !important; margin-bottom: 4px !important; }
   
   .bottom-tab-bar {
-    height: 36px !important;
-    padding: 2px !important;
+    padding: 4px !important;
+    margin-top: 6px !important;
+    gap: 3px !important;
   }
-  .bottom-tab i { font-size: 16px !important; margin-bottom: 0 !important; }
-  .bottom-tab span { font-size: 9px !important; }
+  /* On mobile, tabs stay exactly the same compact shape — never taller */
+  .bottom-tab {
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
+    aspect-ratio: unset !important;
+  }
+  .bottom-tab i,
+  .bottom-tab-icon { font-size: 18px !important; }
+  .bottom-tab span,
+  .bottom-tab-text { font-size: 8.5px !important; }
 
   .col-center {
     flex: 1 !important; /* Takes exactly remaining space, never jumps */
