@@ -1475,21 +1475,72 @@ function parseSGF(text) {
       document.getElementById('banner-ai-name').innerText = pw;
   }
   
-  while ((match = moveRegex.exec(text)) !== null) {
-    const color = match[1]; // B or W
-    const coords = match[2];
-    if (coords) {
-      const c = letterToIndex(coords[0]);
-      const r = letterToIndex(coords[1]);
-      
-      // Standard Go Coords (Skip I, 1-19 from bottom)
-      const letters = "ABCDEFGHJKLMNOPQRST";
-      const colLetter = letters[c] || '?';
-      const rowNum = boardSize - r;
-      
-      moveHistory.push({ color, c, r, label: `${colLetter}${rowNum}` });
-    } else {
-      moveHistory.push({ color, c: -1, r: -1, label: 'PASS' });
+  if (typeof SgfEngine !== 'undefined') {
+    try {
+      const tree = SgfEngine.parseSgf(text);
+      if (tree) {
+        const mainLine = SgfEngine.extractMainLine(tree);
+        mainLine.forEach((props, index) => {
+          const isRootOnly = index === 0 && tree.nodes[0] === mainLine[0] && !props.B && !props.W;
+          if (isRootOnly) return;
+          
+          if (props.B || props.W) {
+            const color = props.B ? 'B' : 'W';
+            const coordStr = props[color][0];
+            let c = -1;
+            let r = -1;
+            if (coordStr) {
+                const pt = SgfEngine.parseGoPoint(coordStr, boardSize, boardSize);
+                if (pt) { c = pt.c; r = pt.r; }
+            }
+            
+            const letters = "ABCDEFGHJKLMNOPQRST";
+            const colLetter = letters[c] || '?';
+            const rowNum = boardSize - r;
+            const label = c === -1 ? 'PASS' : `${colLetter}${rowNum}`;
+            
+            let moveAnnotation = null;
+            if (props.TE) moveAnnotation = { type: 'TE', value: props.TE[0] || '1' };
+            else if (props.BM) moveAnnotation = { type: 'BM', value: props.BM[0] || '1' };
+            else if (props.DO) moveAnnotation = { type: 'DO', value: null };
+            else if (props.IT) moveAnnotation = { type: 'IT', value: null };
+
+            let nodeAnnotation = null;
+            if (props.HO) nodeAnnotation = { type: 'HO', value: props.HO[0] || '1' };
+            else if (props.UC) nodeAnnotation = { type: 'UC', value: props.UC[0] || '1' };
+            else if (props.GW) nodeAnnotation = { type: 'GW', value: props.GW[0] || '1' };
+            else if (props.GB) nodeAnnotation = { type: 'GB', value: props.GB[0] || '1' };
+            else if (props.DM) nodeAnnotation = { type: 'DM', value: props.DM[0] || '1' };
+
+            const comment = props.C ? props.C[0] : null;
+            const nodeName = props.N ? props.N[0] : null;
+
+            moveHistory.push({ color, c, r, label, moveAnnotation, nodeAnnotation, comment, nodeName });
+          }
+        });
+      }
+    } catch (e) {
+      console.error("SgfEngine failed, using fallback:", e);
+    }
+  }
+  
+  if (moveHistory.length === 0) {
+    while ((match = moveRegex.exec(text)) !== null) {
+      const color = match[1]; // B or W
+      const coords = match[2];
+      if (coords) {
+        const c = letterToIndex(coords[0]);
+        const r = letterToIndex(coords[1]);
+        
+        // Standard Go Coords (Skip I, 1-19 from bottom)
+        const letters = "ABCDEFGHJKLMNOPQRST";
+        const colLetter = letters[c] || '?';
+        const rowNum = boardSize - r;
+        
+        moveHistory.push({ color, c, r, label: `${colLetter}${rowNum}` });
+      } else {
+        moveHistory.push({ color, c: -1, r: -1, label: 'PASS' });
+      }
     }
   }
   
