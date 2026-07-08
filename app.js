@@ -5,6 +5,12 @@ let boardSize = 19;
 let boardState = []; // 2D array [r][c] -> {player: 'B' | 'W' | null}
 let moveHistory = [];
 let currentMoveIndex = -1;
+
+window.state = {
+    get sgfMoves() { return moveHistory; },
+    get currentMoveIndex() { return currentMoveIndex; }
+};
+
 let currentRippleMesh = null; // Reused for the 3D aura system
 let auraTexture = null;
 let pendingMove = null;
