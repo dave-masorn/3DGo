@@ -994,9 +994,18 @@ function updateActiveCoordinates(c, r, player) {
   if (c === -1 || r === -1) {
     activeCoordTexture.needsUpdate = true;
     if (floatingCoordSprite) floatingCoordSprite.visible = false;
+    if (activeCoordMesh) activeCoordMesh.visible = false;
     return;
   }
+  
+  if (is2DMode) {
+    if (floatingCoordSprite) floatingCoordSprite.visible = false;
+    if (activeCoordMesh) activeCoordMesh.visible = false;
+    return;
+  }
+  
   if (floatingCoordSprite) floatingCoordSprite.visible = true;
+  if (activeCoordMesh) activeCoordMesh.visible = true;
   
   const GRID_LINES = boardSize;
   const PAD = S * 2 / (GRID_LINES + 3);
