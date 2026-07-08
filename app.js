@@ -2390,17 +2390,6 @@ function setupBoardClick() {
     clearTimeout(pressTimer);
     if (!event.isPrimary) return; // Only process placement for the primary finger
 
-    // Use _camDidMove (set by controls 'change') not isCameraDragging (set by controls 'end'
-    // which fires on document.pointerup — AFTER this canvas.pointerup, so always still true).
-    if (_camDidMove) {
-      // This was a real camera drag — reset flag and bail
-      _camDidMove = false;
-      precisionMode = false;
-      controls.enabled = true;
-      return;
-    }
-    _camDidMove = false; // reset for next interaction
-
     // Precision touch commit (hold-and-slide)
     if (precisionMode) {
       precisionMode = false;
