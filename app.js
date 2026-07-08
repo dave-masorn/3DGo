@@ -1505,57 +1505,16 @@ function parseSGF(text) {
   captureHistory = [];
   
   populateMoveHistory();
-  renderTimelineDots();
+  // renderTimelineDots();
   goToMove(moveHistory.length - 1);
 }
 
 function renderTimelineDots() {
-    const container = document.getElementById('timeline-dots-container');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    const totalMoves = moveHistory.length;
-    if (totalMoves === 0) return;
-    
-    // We only want a maximum number of dots, say 15, to fit visually
-    const maxDots = 15;
-    const step = Math.max(1, Math.floor(totalMoves / maxDots));
-    
-    for (let i = 0; i < totalMoves; i += step) {
-        const dot = document.createElement('div');
-        dot.className = 'timeline-dot';
-        dot.dataset.index = i;
-        if (i % 10 === 0) dot.classList.add('purple'); // Every 10th move is purple
-        
-        dot.onclick = (e) => {
-            e.stopPropagation();
-            goToMove(i);
-        };
-        container.appendChild(dot);
-    }
+    // Disabled old timeline to use Game Tree
 }
 
 function updateTimeline(idx) {
-    const container = document.getElementById('timeline-dots-container');
-    if (!container) return;
-    const dots = container.querySelectorAll('.timeline-dot');
-    
-    // Find closest dot to active index
-    let closestDot = null;
-    let minDiff = Infinity;
-    dots.forEach(dot => {
-        dot.classList.remove('active');
-        const dotIdx = parseInt(dot.dataset.index);
-        const diff = Math.abs(dotIdx - idx);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closestDot = dot;
-        }
-    });
-    
-    if (closestDot) {
-        closestDot.classList.add('active');
-    }
+    // Disabled old timeline to use Game Tree
 }
 
 function populateMoveHistory() {

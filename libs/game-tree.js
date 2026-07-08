@@ -122,7 +122,7 @@ var renderFooterTree = function() {
     _footerWrap.innerHTML = ''
     _footerWrap.style.display = 'none'
     // Restore footer text when SGF is cleared
-    var footer = document.querySelector('footer.app-footer')
+    var footer = document.querySelector('footer.app-footer') || document.getElementById('replay-timeline-wrap');
     if (footer) {
       if (_footerText) _footerText.style.display = ''
       footer.classList.remove('tree-active')
@@ -131,7 +131,7 @@ var renderFooterTree = function() {
   }
 
   // Re-enter tree mode (in case it was cleared by a previous SGF clear)
-  var footer = document.querySelector('footer.app-footer')
+  var footer = document.querySelector('footer.app-footer') || document.getElementById('replay-timeline-wrap');
   if (footer) {
     if (_footerText) _footerText.style.display = 'none'
     footer.classList.add('tree-active')
@@ -338,7 +338,7 @@ var render = function() {
 
 var initFooterTree = function() {
   if (_footerWrap) return
-  var footer = document.querySelector('footer.app-footer')
+  var footer = document.querySelector('footer.app-footer') || document.getElementById('replay-timeline-wrap');
   if (!footer) return
   _footerWrap = document.createElement('div')
   _footerWrap.id = 'gt-footer-tree'
@@ -571,7 +571,7 @@ var onResize = function() {
 var _footerPollId = setInterval(function() {
   if (typeof state === 'undefined' || !state) return
   if (!_footerWrap) {
-    if (state.sgfMoves && state.sgfMoves.length > 0 && document.querySelector('footer.app-footer')) {
+    if (state.sgfMoves && state.sgfMoves.length > 0 && (document.querySelector('footer.app-footer') || document.getElementById('replay-timeline-wrap'))) {
       initFooterTree()
       renderFooterTree()
     }

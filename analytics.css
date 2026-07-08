@@ -1285,4 +1285,77 @@ body {
     margin: 16px;
     width: calc(100% - 32px);
   }
+  }
+}
+
+/* GT Footer Tree Styles */
+#gt-footer-tree {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #111;
+    height: 45px;
+    transition: height 0.3s ease;
+    border-radius: 4px;
+}
+#gt-footer-tree .gt-footer-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+}
+#gt-footer-tree .gt-footer-inner .gt-fslider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20px;
+}
+#gt-footer-tree .gt-footer-inner .gt-fslider .fprev,
+#gt-footer-tree .gt-footer-inner .gt-fslider .fnext {
+    display: block;
+    padding: 2px 4px;
+    font-size: 10px;
+    line-height: 1;
+    text-decoration: none;
+    color: #888;
+    cursor: pointer;
+    user-select: none;
+}
+#gt-footer-tree .gt-footer-inner .gt-fslider .fprev:hover,
+#gt-footer-tree .gt-footer-inner .gt-fslider .fnext:hover {
+    color: #ccc;
+}
+#gt-footer-tree .gt-footer-inner .gt-fslider .finner {
+    position: relative;
+    width: 12px;
+    flex: 1;
+    min-height: 40px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#gt-footer-tree .gt-footer-inner .gt-fslider .finner span {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #393939;
+    border-radius: 50%;
+    font-size: 0;
+    pointer-events: none;
+}
+#gt-footer-tree .fnode {
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+#gt-footer-tree .fnode:hover {
+    opacity: 0.7;
+}
+#gt-footer-tree .fnode.current {
+    stroke: #FFFFFF;
+    stroke-width: 1.5;
 }
