@@ -743,23 +743,28 @@ function _generateBoardTexture2D() {
   canvas.width = canvas.height = S;
   const ctx = canvas.getContext('2d');
 
-  // World coordinate math — must stay in sync with STEP_SIZE / GRID_OFFSET
-  // Grid line i (0..18) → world x = i*STEP_SIZE - GRID_OFFSET
-  // UV u = (worldX + SLAB_W/2) / SLAB_W  where SLAB_W = BOARD_UNITS + STEP_SIZE*2
-  // tex_x = u * S
-  const SLAB_W = BOARD_UNITS + STEP_SIZE * 2.0; // = 66 world units for 19×19
-  // col A (i=0): worldX = -GRID_OFFSET → tex_x = (-GRID_OFFSET + SLAB_W/2) / SLAB_W * S
-  //            = (STEP_SIZE) / SLAB_W * S
-  const GRID_START_PX = (STEP_SIZE / SLAB_W) * S;         // = (3/66)*4096 ≈ 186px
-  const GRID_END_PX   = S - GRID_START_PX;                // symmetric
-  const GRID_SPAN_PX  = GRID_END_PX - GRID_START_PX;      // ≈ 3724px
-  const STEP_PX       = GRID_SPAN_PX / (GRID_LINES - 1);  // ≈ 207px
+  // ── World-to-texture coordinate mapping ───────────────────────────────────
+  // PlaneGeometry(SLAB_W, SLAB_W) with rotation.x = -π/2 + Three.js flipY=true gives:
+  //   canvas_x = (worldX  + SLAB_W/2) / SLAB_W * S
+  //   canvas_y = (worldZ  + SLAB_W/2) / SLAB_W * S   ← Z increases downward on canvas
+  //
+  // Stone at column c → worldX = c*STEP_SIZE - GRID_OFFSET
+  //   canvas_x_for_col_c = (c*STEP_SIZE - GRID_OFFSET + SLAB_W/2) / SLAB_W * S
+  //                       = (c*STEP_SIZE + SLAB_W/2 - GRID_OFFSET) / SLAB_W * S
+  //
+  // SLAB_W/2 - GRID_OFFSET  = 33 - 27 = 6  (the margin from canvas edge to col A)
+  //   → GRID_START_PX = 6/66 * 4096 = 372px
+  //   → STEP_PX       = 3/66 * 4096 = 186px
+  //
+  const SLAB_W2 = BOARD_UNITS + STEP_SIZE * 2.0;  // = 66
+  const GRID_START_PX = ((SLAB_W2 / 2 - GRID_OFFSET) / SLAB_W2) * S;  // = 6/66*4096 ≈ 372px
+  const STEP_PX       = (STEP_SIZE / SLAB_W2) * S;                     // = 3/66*4096 ≈ 186px
 
-  function gp(i) { return GRID_START_PX + i * STEP_PX; }  // pixel position of grid line i
+  // pixel position of grid line i (col or row, board is square)
+  function gp(i) { return GRID_START_PX + i * STEP_PX; }
 
-  // Dark border proportions  — 5.8% on each side
-  const BORDER_PX = Math.round(S * 0.058);   // ≈ 238px
-  // Wood area (orange board with grain)
+  // Dark border strip — 5.8% on each side of the 4096px canvas
+  const BORDER_PX = Math.round(S * 0.058);  // ≈ 238px
   const WOOD_X = BORDER_PX, WOOD_Y = BORDER_PX;
   const WOOD_W = S - BORDER_PX * 2, WOOD_H = S - BORDER_PX * 2;
 
@@ -784,47 +789,47 @@ function _generateBoardTexture2D() {
     ctx.strokeRect(WOOD_X, WOOD_Y, WOOD_W, WOOD_H);
 
     // ── 4. Uniform black grid lines ──
-    const lineW = Math.max(2.5, S * 0.0009);
     ctx.strokeStyle = 'rgba(0,0,0,0.82)';
-    ctx.lineWidth = lineW;
+    ctx.lineWidth = Math.max(2.5, S * 0.0009);
     ctx.beginPath();
     for (let i = 0; i < GRID_LINES; i++) {
       const p = gp(i);
-      ctx.moveTo(p, gp(0));            ctx.lineTo(p, gp(GRID_LINES - 1));
-      ctx.moveTo(gp(0), p);            ctx.lineTo(gp(GRID_LINES - 1), p);
+      ctx.moveTo(p, gp(0));             ctx.lineTo(p, gp(GRID_LINES - 1));  // vertical
+      ctx.moveTo(gp(0), p);             ctx.lineTo(gp(GRID_LINES - 1), p);  // horizontal
     }
     ctx.stroke();
 
-    // ── 5. Hoshi dots ──
-    const hoshiPositions = [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
+    // ── 5. Hoshi dots (standard 9-star positions) ──
+    const HOSHI = [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
     ctx.fillStyle = 'rgba(0,0,0,0.88)';
-    const hR = S * 0.0040; // dot radius
-    hoshiPositions.forEach(([c, r]) => {
+    const hR = STEP_PX * 0.115;  // dot radius proportional to grid step
+    HOSHI.forEach(([c, r]) => {
       ctx.beginPath();
       ctx.arc(gp(c), gp(r), hR, 0, Math.PI * 2);
       ctx.fill();
     });
 
     // ── 6. Coordinate labels in the dark border strip ──
-    const fontSize = Math.round(S * 0.022);
+    const fontSize = Math.round(STEP_PX * 0.68);  // proportional to grid step
     ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
     ctx.fillStyle = '#cccccc';
     ctx.textBaseline = 'middle';
 
-    const COL_LETTERS = 'ABCDEFGHJKLMNOPQRST';
-    const coordYTop = BORDER_PX * 0.48;
-    const coordYBot = S - BORDER_PX * 0.48;
+    const COLS = 'ABCDEFGHJKLMNOPQRST';
+    const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
+    const coordYTop = stripCenter;              // letters above board
+    const coordYBot = S - stripCenter;          // letters below board
+    const numXLeft  = stripCenter;              // numbers to left of board
+    const numXRight = S - stripCenter;          // numbers to right of board
 
-    // Column letters top + bottom
+    // Column letters — top and bottom
     ctx.textAlign = 'center';
     for (let i = 0; i < GRID_LINES; i++) {
-      ctx.fillText(COL_LETTERS[i], gp(i), coordYTop);
-      ctx.fillText(COL_LETTERS[i], gp(i), coordYBot);
+      ctx.fillText(COLS[i], gp(i), coordYTop);
+      ctx.fillText(COLS[i], gp(i), coordYBot);
     }
 
-    // Row numbers left (right-aligned near board edge) + right (left-aligned)
-    const numXLeft  = BORDER_PX * 0.80;
-    const numXRight = S - BORDER_PX * 0.80;
+    // Row numbers — left and right (19 at top, 1 at bottom)
     ctx.textAlign = 'center';
     for (let i = 0; i < GRID_LINES; i++) {
       const label = String(GRID_LINES - i);
@@ -832,6 +837,7 @@ function _generateBoardTexture2D() {
       ctx.fillText(label, numXRight, gp(i));
     }
   }
+
 
   // Draw placeholder immediately (pure orange, no wood image yet)
   draw(null);
@@ -845,7 +851,7 @@ function _generateBoardTexture2D() {
   woodImg.onload = () => {
     draw(woodImg);
     tex.needsUpdate = true;
-    lastRenderTime = 0;
+    // tex.needsUpdate is enough — the running animate() loop will pick it up next frame
   };
   woodImg.onerror = () => {
     // Keep the placeholder; already drawn
