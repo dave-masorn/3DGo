@@ -2301,6 +2301,7 @@ function setupBoardClick() {
   // ── Pointer down: record for tap/drag discrimination ──
   canvas.addEventListener('pointerdown', e => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (!e.isPrimary) return; // Ignore multi-touch for tap tracking
     pointerDownX = e.clientX;
     pointerDownY = e.clientY;
     pointerDownTime = performance.now();
@@ -2312,6 +2313,19 @@ function setupBoardClick() {
 
   canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' || !playModeEnabled) return;
+    
+    // If a second finger touches, cancel precision mode immediately so OrbitControls can pan/zoom
+    if (!e.isPrimary) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+      if (precisionMode) {
+        precisionMode = false;
+        controls.enabled = true;
+        if (hoverRingMesh) hoverRingMesh.visible = false;
+      }
+      return;
+    }
+
     pressTimer = setTimeout(() => {
       precisionMode = true;
       controls.enabled = false; // freeze orbit while precision-placing
@@ -2374,6 +2388,7 @@ function setupBoardClick() {
   let _lastTapTime = 0;
   canvas.addEventListener('pointerup', function(event) {
     clearTimeout(pressTimer);
+    if (!event.isPrimary) return; // Only process placement for the primary finger
 
     // Use _camDidMove (set by controls 'change') not isCameraDragging (set by controls 'end'
     // which fires on document.pointerup — AFTER this canvas.pointerup, so always still true).
