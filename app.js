@@ -579,8 +579,16 @@ function initThree() {
     
     const startCamPos = camera.position.clone();
     const startTarget = controls.target.clone();
-    const initialCamPos = new THREE.Vector3(0, 72, 56);
-    const initialTarget = new THREE.Vector3(0, 0, 10);
+    const startZoom = camera.zoom || 1;
+    
+    // 2D mode: reset to top-down origin view; 3D mode: reset to angled overview
+    const initialCamPos = is2DMode
+      ? new THREE.Vector3(0, _2D_CAM_HEIGHT, 0)
+      : new THREE.Vector3(0, 72, 56);
+    const initialTarget = is2DMode
+      ? new THREE.Vector3(0, 0, 0)
+      : new THREE.Vector3(0, 0, 10);
+    const initialZoom = 1.0;
     
     const duration = 800;
     const startTime = performance.now();
@@ -594,6 +602,12 @@ function initThree() {
       
       camera.position.lerpVectors(startCamPos, initialCamPos, ease);
       controls.target.lerpVectors(startTarget, initialTarget, ease);
+      
+      if (is2DMode) {
+        camera.zoom = startZoom + (initialZoom - startZoom) * ease;
+        camera.updateProjectionMatrix();
+      }
+      
       controls.update();
       
       if (progress < 1.0) {
@@ -616,8 +630,19 @@ function initThree() {
     const w = container.clientWidth;
     const h = container.clientHeight;
     renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    updateCameraFov();
+    if (is2DMode && camera.isOrthographicCamera) {
+      const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
+      const aspect = w / h;
+      const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05);
+      camera.left   = -fs * aspect / 2;
+      camera.right  =  fs * aspect / 2;
+      camera.top    =  fs / 2;
+      camera.bottom = -fs / 2;
+      camera.updateProjectionMatrix();
+    } else if (!is2DMode) {
+      camera.aspect = w / h;
+      updateCameraFov();
+    }
     if(typeof updateDiagnostics === 'function') updateDiagnostics();
   });
 
@@ -701,8 +726,140 @@ function initThree() {
 
 // ─── Board Texture ────────────────────────────────────────────────────────────
 function generateBoardTexture() {
-  const S = 3072; // Super high resolution for infinite zoom
-  const RADIUS = 150; // Scaled for 3072
+  if (is2DMode) {
+    return _generateBoardTexture2D();
+  }
+  return _generateBoardTexture3D();
+}
+
+// ── 2D Mode: pixel-exact board matching the reference image ──
+// Layout: dark outer border (~6%) → thin amber line → wood (board_medium.png) → grid → hoshi
+// Coordinates drawn in white in the dark border strip.
+// This function returns a placeholder synchronously; the real texture is loaded
+// from board_medium.png asynchronously and swapped in once ready.
+function _generateBoardTexture2D() {
+  const S = 4096;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = S;
+  const ctx = canvas.getContext('2d');
+
+  // World coordinate math — must stay in sync with STEP_SIZE / GRID_OFFSET
+  // Grid line i (0..18) → world x = i*STEP_SIZE - GRID_OFFSET
+  // UV u = (worldX + SLAB_W/2) / SLAB_W  where SLAB_W = BOARD_UNITS + STEP_SIZE*2
+  // tex_x = u * S
+  const SLAB_W = BOARD_UNITS + STEP_SIZE * 2.0; // = 66 world units for 19×19
+  // col A (i=0): worldX = -GRID_OFFSET → tex_x = (-GRID_OFFSET + SLAB_W/2) / SLAB_W * S
+  //            = (STEP_SIZE) / SLAB_W * S
+  const GRID_START_PX = (STEP_SIZE / SLAB_W) * S;         // = (3/66)*4096 ≈ 186px
+  const GRID_END_PX   = S - GRID_START_PX;                // symmetric
+  const GRID_SPAN_PX  = GRID_END_PX - GRID_START_PX;      // ≈ 3724px
+  const STEP_PX       = GRID_SPAN_PX / (GRID_LINES - 1);  // ≈ 207px
+
+  function gp(i) { return GRID_START_PX + i * STEP_PX; }  // pixel position of grid line i
+
+  // Dark border proportions  — 5.8% on each side
+  const BORDER_PX = Math.round(S * 0.058);   // ≈ 238px
+  // Wood area (orange board with grain)
+  const WOOD_X = BORDER_PX, WOOD_Y = BORDER_PX;
+  const WOOD_W = S - BORDER_PX * 2, WOOD_H = S - BORDER_PX * 2;
+
+  function draw(woodImg) {
+    ctx.clearRect(0, 0, S, S);
+
+    // ── 1. Dark background ──
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(0, 0, S, S);
+
+    // ── 2. Wood area ──
+    if (woodImg) {
+      ctx.drawImage(woodImg, WOOD_X, WOOD_Y, WOOD_W, WOOD_H);
+    } else {
+      ctx.fillStyle = '#e8a040';
+      ctx.fillRect(WOOD_X, WOOD_Y, WOOD_W, WOOD_H);
+    }
+
+    // ── 3. Thin amber border around wood ──
+    ctx.strokeStyle = '#c97d20';
+    ctx.lineWidth = Math.max(4, S * 0.0022);
+    ctx.strokeRect(WOOD_X, WOOD_Y, WOOD_W, WOOD_H);
+
+    // ── 4. Uniform black grid lines ──
+    const lineW = Math.max(2.5, S * 0.0009);
+    ctx.strokeStyle = 'rgba(0,0,0,0.82)';
+    ctx.lineWidth = lineW;
+    ctx.beginPath();
+    for (let i = 0; i < GRID_LINES; i++) {
+      const p = gp(i);
+      ctx.moveTo(p, gp(0));            ctx.lineTo(p, gp(GRID_LINES - 1));
+      ctx.moveTo(gp(0), p);            ctx.lineTo(gp(GRID_LINES - 1), p);
+    }
+    ctx.stroke();
+
+    // ── 5. Hoshi dots ──
+    const hoshiPositions = [[3,3],[3,9],[3,15],[9,3],[9,9],[9,15],[15,3],[15,9],[15,15]];
+    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    const hR = S * 0.0040; // dot radius
+    hoshiPositions.forEach(([c, r]) => {
+      ctx.beginPath();
+      ctx.arc(gp(c), gp(r), hR, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // ── 6. Coordinate labels in the dark border strip ──
+    const fontSize = Math.round(S * 0.022);
+    ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
+    ctx.fillStyle = '#cccccc';
+    ctx.textBaseline = 'middle';
+
+    const COL_LETTERS = 'ABCDEFGHJKLMNOPQRST';
+    const coordYTop = BORDER_PX * 0.48;
+    const coordYBot = S - BORDER_PX * 0.48;
+
+    // Column letters top + bottom
+    ctx.textAlign = 'center';
+    for (let i = 0; i < GRID_LINES; i++) {
+      ctx.fillText(COL_LETTERS[i], gp(i), coordYTop);
+      ctx.fillText(COL_LETTERS[i], gp(i), coordYBot);
+    }
+
+    // Row numbers left (right-aligned near board edge) + right (left-aligned)
+    const numXLeft  = BORDER_PX * 0.80;
+    const numXRight = S - BORDER_PX * 0.80;
+    ctx.textAlign = 'center';
+    for (let i = 0; i < GRID_LINES; i++) {
+      const label = String(GRID_LINES - i);
+      ctx.fillText(label, numXLeft,  gp(i));
+      ctx.fillText(label, numXRight, gp(i));
+    }
+  }
+
+  // Draw placeholder immediately (pure orange, no wood image yet)
+  draw(null);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 4;
+
+  // Async: load board_medium.png and redraw with real wood texture
+  const woodImg = new Image();
+  woodImg.onload = () => {
+    draw(woodImg);
+    tex.needsUpdate = true;
+    lastRenderTime = 0;
+  };
+  woodImg.onerror = () => {
+    // Keep the placeholder; already drawn
+    console.warn('board_medium.png not found — using plain wood colour');
+  };
+  woodImg.src = 'board_medium.png';
+
+  return tex;
+}
+
+// ── 3D Mode: original rich textured board ──
+function _generateBoardTexture3D() {
+  const S = 3072;
+  const RADIUS = 150;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = S;
   const ctx = canvas.getContext('2d');
@@ -721,13 +878,11 @@ function generateBoardTexture() {
     ctx.closePath();
   }
 
-  // Clear and setup base board shape
   ctx.clearRect(0, 0, S, S);
   ctx.save();
   roundRect(0, 0, S, S, RADIUS);
   ctx.clip();
   
-  // Base golden-yellow wood color
   const bgGrad = ctx.createLinearGradient(0, 0, S, S);
   bgGrad.addColorStop(0, '#fde047');
   bgGrad.addColorStop(0.5, '#facc15');
@@ -735,23 +890,17 @@ function generateBoardTexture() {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, S, S);
 
-  // Procedural Ten-masa (Straight Grain) Texture
   ctx.save();
   const numLines = S * 0.55; 
   ctx.globalAlpha = 0.08;
-  
   for (let i = 0; i < numLines; i++) {
     let x = (i / numLines) * S;
-    // Add clustering and organic grouping
     x += Math.sin(i * 0.15) * (S * 0.01); 
-    
     const waveFreq = 0.001 + (Math.random() * 0.003);
     const waveAmp = 2 + (Math.random() * 8);
     const phase = Math.random() * Math.PI * 2;
-    
     ctx.lineWidth = 0.5 + Math.random() * 2.5; 
-    ctx.strokeStyle = Math.random() > 0.5 ? '#b45309' : '#854d0e'; // Rich warm browns
-    
+    ctx.strokeStyle = Math.random() > 0.5 ? '#b45309' : '#854d0e';
     ctx.beginPath();
     ctx.moveTo(x, 0);
     for (let y = 0; y <= S; y += 40) {
@@ -759,8 +908,6 @@ function generateBoardTexture() {
     }
     ctx.stroke();
   }
-  
-  // Add faint sweeping color variations for wood depth
   ctx.globalAlpha = 0.035;
   for (let i = 0; i < 8; i++) {
      ctx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#713f12';
@@ -770,7 +917,6 @@ function generateBoardTexture() {
   }
   ctx.restore();
 
-  // Grid lines
   const PAD = S * 2 / (GRID_LINES + 3);
   const gridPx = S - PAD * 2;
   const step = gridPx / (GRID_LINES - 1);
@@ -786,23 +932,20 @@ function generateBoardTexture() {
   }
   ctx.stroke();
 
-  // Hoshi
   const hoshiDots = [ [3,3], [3,9], [3,15], [9,3], [9,9], [9,15], [15,3],[15,9], [15,15] ];
   ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
   hoshiDots.forEach(([hi, hj]) => {
     ctx.beginPath(); ctx.arc(lp(hi), lp(hj), S * 0.0045, 0, Math.PI * 2); ctx.fill();
   });
 
-  // Coordinate labels
   ctx.save();
   ctx.font = '48px "SF Pro Display", "Inter", "Helvetica Neue", sans-serif'; 
-  ctx.fillStyle = 'rgba(60, 30, 0, 0.75)'; // Dark Brown etched look
+  ctx.fillStyle = 'rgba(60, 30, 0, 0.75)';
   ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 1;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  
   const colLetters = 'ABCDEFGHJKLMNOPQRST';
   for (let i = 0; i < GRID_LINES; i++) {
     ctx.fillText(colLetters[i], lp(i), S - PAD * 0.3);
@@ -818,23 +961,21 @@ function generateBoardTexture() {
   }
   ctx.restore();
 
-  // Solid warm borders
   ctx.save();
   ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 26;
   roundRect(13, 13, S-26, S-26, RADIUS - 6); ctx.stroke();
-  
   ctx.strokeStyle = '#a16207'; ctx.lineWidth = 9;
   roundRect(4, 4, S-8, S-8, RADIUS); ctx.stroke();
   ctx.restore();
   
-  ctx.restore(); // end clip
+  ctx.restore();
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 4;
-  
   return tex;
 }
+
 
 
 let activeCoordCanvas, activeCoordCtx, activeCoordTexture, activeCoordMesh;
