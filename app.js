@@ -67,36 +67,41 @@ let is2DMode = true; // Default: 2D top-down board
 // In 2D mode autoCamTarget is used for controls.target panning; autoCamPos is ignored
 const _2D_CAM_HEIGHT = 100; // orthographic camera height (arbitrary, doesn't affect ortho framing)
 
-window.toggleHoshiCam = function() {
-    hoshiCamEnabled = !hoshiCamEnabled;
-    const hoshiIcon = document.getElementById('hoshi-icon');
-    if (hoshiIcon) {
-        if (hoshiCamEnabled) {
-            hoshiIcon.style.color = 'var(--accent-cyan)';
-            hoshiIcon.style.filter = 'drop-shadow(0 0 5px var(--accent-cyan))';
-        } else {
-            hoshiIcon.style.color = 'var(--text-muted)';
-            hoshiIcon.style.filter = 'none';
-        }
-    }
-    if (autoCamEnabled) updateAutoCamTarget(currentMoveIndex);
-};
-
 window.toggleAutoCam = function() {
-  autoCamEnabled = !autoCamEnabled;
-  const group = document.getElementById('btn-cam-auto-group');
-  if (group) group.classList.toggle('active', autoCamEnabled);
+  if (!autoCamEnabled && !hoshiCamEnabled) {
+      // State 1: Auto-Cam ON, Hoshi OFF
+      autoCamEnabled = true;
+      hoshiCamEnabled = false;
+  } else if (autoCamEnabled && !hoshiCamEnabled) {
+      // State 2: Auto-Cam ON, Hoshi ON
+      autoCamEnabled = true;
+      hoshiCamEnabled = true;
+  } else {
+      // State 3: Both OFF
+      autoCamEnabled = false;
+      hoshiCamEnabled = false;
+  }
+
+  const btn = document.getElementById('btn-cam-auto');
+  const icon = document.getElementById('cam-icon');
+  const label = document.getElementById('cam-label');
   
-  const hoshiBtn = document.getElementById('btn-cam-hoshi');
-  if (hoshiBtn) {
+  if (btn && icon && label) {
       if (autoCamEnabled) {
-          hoshiBtn.style.opacity = '1';
-          hoshiBtn.style.pointerEvents = 'auto';
+          btn.style.color = 'var(--accent-cyan)';
+          btn.style.background = 'rgba(6, 182, 212, 0.1)';
+          if (hoshiCamEnabled) {
+              icon.className = 'ph ph-crosshair';
+              label.innerText = 'Auto-Cam (Hoshi)';
+          } else {
+              icon.className = 'ph ph-video-camera';
+              label.innerText = 'Auto-Cam';
+          }
       } else {
-          hoshiBtn.style.opacity = '0.4';
-          hoshiBtn.style.pointerEvents = 'none';
-          // Also forcibly turn off Hoshi if Auto-Cam is turned off
-          if (hoshiCamEnabled) toggleHoshiCam();
+          btn.style.color = 'var(--text-muted)';
+          btn.style.background = 'var(--panel-bg)';
+          icon.className = 'ph ph-video-camera';
+          label.innerText = 'Auto-Cam';
       }
   }
   
@@ -574,6 +579,26 @@ function initThree() {
               return;
           }
       }
+      
+    // Prevent camera reset if user is trying to place a stone
+    if (typeof playModeEnabled !== 'undefined' && playModeEnabled && typeof getRaycastIntersect === 'function') {
+        let clientX, clientY;
+        if (e && e.type === 'touchend' && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else if (e) {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        if (clientX !== undefined && clientY !== undefined) {
+            const loc = getRaycastIntersect(clientX, clientY);
+            if (loc && loc.c !== -1 && loc.r !== -1) {
+                // User double tapped/clicked on a valid board intersection during play mode.
+                // Do not reset the camera. Let the stone placement logic handle it.
+                return;
+            }
+        }
+    }
       
     controls.enabled = false;
     
@@ -2582,7 +2607,7 @@ function setupBoardClick() {
       if (loc && loc.c !== -1 && !boardState[loc.r][loc.c].player) {
         hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
         hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
-        hoverRingMesh.visible = true;
+        hoverRingMesh.visible = !is2DMode;
         lastRenderTime = 0;
       } else if (hoverRingMesh) {
         hoverRingMesh.visible = false;
@@ -2620,7 +2645,7 @@ function setupBoardClick() {
         pendingRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
         pendingRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
         pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
-        pendingRingMesh.visible = true;
+        pendingRingMesh.visible = !is2DMode;
         playArmlock(); // arm sound
         if (navigator.vibrate) navigator.vibrate(8);
         lastRenderTime = 0;
