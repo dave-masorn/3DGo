@@ -334,6 +334,21 @@ const dropShadowMat = new THREE.MeshBasicMaterial({
 
 const placeSound   = new Audio('sfx/scifi-stone-placing.wav');
 const unplaceSound = new Audio('sfx/scifi-stone-unplacing.wav');
+const armlockSound = new Audio('sfx/armlock.wav');
+const tnockSound   = new Audio('sfx/tnock.wav');
+armlockSound.preload = 'auto';
+tnockSound.preload   = 'auto';
+
+function playArmlock() {
+  armlockSound.currentTime = 0;
+  armlockSound.volume = 0.7;
+  armlockSound.play().catch(() => {});
+}
+function playTnock() {
+  tnockSound.currentTime = 0;
+  tnockSound.volume = 0.8;
+  tnockSound.play().catch(() => {});
+}
 
 const highlightMaterials = {
   danger: new THREE.MeshBasicMaterial({ color: 0xdc2626, transparent: true, opacity: 0.6 }),
@@ -2391,6 +2406,7 @@ function setupBoardClick() {
         pendingRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
         pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
         pendingRingMesh.visible = true;
+        playArmlock(); // arm sound
         if (navigator.vibrate) navigator.vibrate(8);
         lastRenderTime = 0;
         return;
@@ -2439,6 +2455,7 @@ function setupBoardClick() {
       pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
       pendingRingMesh.visible = true;
       if (hoverRingMesh) hoverRingMesh.visible = false;
+      playArmlock(); // arm sound
       if (navigator.vibrate) navigator.vibrate(8);
       lastRenderTime = 0;
       return;
@@ -2452,6 +2469,7 @@ function setupBoardClick() {
     pendingMove = null;
     if (pendingRingMesh) pendingRingMesh.visible = false;
     if (hoverRingMesh) hoverRingMesh.visible = false;
+    playTnock(); // place sound
     if (navigator.vibrate) navigator.vibrate(10);
     const letters = 'ABCDEFGHJKLMNOPQRST';
     const label = letters[loc.c] + (boardSize - loc.r);
