@@ -18,6 +18,7 @@ let pendingRingMesh = null;
 let hoverRingMesh = null;
 let lastMoveMarkerMesh = null;
 let isCameraDragging = false;
+let _camDidMove = false; // module-level, readable from setupBoardClick
 
 function getAuraTexture() {
   if (!auraTexture) {
@@ -469,11 +470,13 @@ function initThree() {
   controls.addEventListener('start', () => {
     manualCamOverride = true;
     didCameraMove = false;
+    _camDidMove = false;   // reset module-level flag too
     isCameraDragging = true;
   });
   
   controls.addEventListener('change', () => {
     didCameraMove = true;
+    _camDidMove = true;    // camera actually moved — this was a real drag
   });
   
   controls.addEventListener('end', () => {
@@ -2352,17 +2355,23 @@ function setupBoardClick() {
     }
   });
 
+  // ── Double-tap / dblclick → immediate stone placement (skip arm step) ──
+  let _lastTapTime = 0;
   canvas.addEventListener('pointerup', function(event) {
     clearTimeout(pressTimer);
 
-    // Guard: camera was actively rotating
-    if (isCameraDragging) {
+    // Use _camDidMove (set by controls 'change') not isCameraDragging (set by controls 'end'
+    // which fires on document.pointerup — AFTER this canvas.pointerup, so always still true).
+    if (_camDidMove) {
+      // This was a real camera drag — reset flag and bail
+      _camDidMove = false;
       precisionMode = false;
       controls.enabled = true;
       return;
     }
+    _camDidMove = false; // reset for next interaction
 
-    // Precision touch commit
+    // Precision touch commit (hold-and-slide)
     if (precisionMode) {
       precisionMode = false;
       controls.enabled = true;
@@ -2370,13 +2379,12 @@ function setupBoardClick() {
       const loc = getRaycastIntersect(event.clientX, event.clientY);
       if (hoverRingMesh) hoverRingMesh.visible = false;
       if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
-        if (navigator.vibrate) navigator.vibrate(15); // invalid target haptic
+        if (navigator.vibrate) navigator.vibrate(15);
         return;
       }
       const aiColor = getAIColor();
       const humanColor = aiColor === 'B' ? 'W' : 'B';
       if (getNextPlayer() !== humanColor) return;
-      // Arm or confirm
       if (!pendingMove || pendingMove.c !== loc.c || pendingMove.r !== loc.r) {
         pendingMove = { c: loc.c, r: loc.r };
         pendingRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
@@ -2387,36 +2395,43 @@ function setupBoardClick() {
         lastRenderTime = 0;
         return;
       }
-      // Confirmed
-      pendingMove = null;
-      if (pendingRingMesh) pendingRingMesh.visible = false;
-      if (navigator.vibrate) navigator.vibrate(10);
-      const letters = 'ABCDEFGHJKLMNOPQRST';
-      const label = letters[loc.c] + (boardSize - loc.r);
-      moveHistory.push({ color: humanColor, c: loc.c, r: loc.r, label });
-      goToMove(moveHistory.length - 1);
-      setTimeout(() => aiPlayMove(aiColor), 300);
+      // Confirmed via precision drag
+      _commitStone(loc, humanColor, aiColor);
       return;
     }
 
-    // Standard tap flow (quick tap)
     if (!playModeEnabled) return;
+
+    // Movement guard: if finger/cursor moved more than threshold → it was a drag, not a tap
     const dx = event.clientX - pointerDownX;
     const dy = event.clientY - pointerDownY;
-    const dt = performance.now() - pointerDownTime;
-    if (Math.hypot(dx, dy) > TAP_MAX_MOVE || dt > TAP_MAX_TIME) return;
+    if (Math.hypot(dx, dy) > TAP_MAX_MOVE) return;
 
     const loc = getRaycastIntersect(event.clientX, event.clientY);
     if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
-      if (navigator.vibrate) navigator.vibrate(15); // silent miss feedback
+      if (navigator.vibrate) navigator.vibrate(15);
+      // Clear pending if user tapped elsewhere (empty board area that missed a grid point)
       return;
     }
 
     const aiColor = getAIColor();
     const humanColor = aiColor === 'B' ? 'W' : 'B';
-    const nextColor = getNextPlayer();
-    if (nextColor !== humanColor) return;
+    if (getNextPlayer() !== humanColor) return;
 
+    // Double-tap detection → immediate place (skip arm)
+    const now = performance.now();
+    const isDoubleTap = (now - _lastTapTime) < 400 &&
+                        pendingMove &&
+                        pendingMove.c === loc.c &&
+                        pendingMove.r === loc.r;
+    _lastTapTime = now;
+
+    if (isDoubleTap) {
+      _commitStone(loc, humanColor, aiColor);
+      return;
+    }
+
+    // First tap: arm the position (show pending ring)
     if (!pendingMove || pendingMove.c !== loc.c || pendingMove.r !== loc.r) {
       pendingMove = { c: loc.c, r: loc.r };
       pendingRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
@@ -2429,17 +2444,33 @@ function setupBoardClick() {
       return;
     }
 
-    // Confirm stone placement
+    // Second tap on same position → confirm stone placement
+    _commitStone(loc, humanColor, aiColor);
+  });
+
+  function _commitStone(loc, humanColor, aiColor) {
     pendingMove = null;
     if (pendingRingMesh) pendingRingMesh.visible = false;
-
+    if (hoverRingMesh) hoverRingMesh.visible = false;
+    if (navigator.vibrate) navigator.vibrate(10);
     const letters = 'ABCDEFGHJKLMNOPQRST';
     const label = letters[loc.c] + (boardSize - loc.r);
     moveHistory.push({ color: humanColor, c: loc.c, r: loc.r, label });
     goToMove(moveHistory.length - 1);
-
-    // AI responds
     setTimeout(() => aiPlayMove(aiColor), 300);
+  }
+
+  // dblclick (mouse) → immediate place if a position is armed, else arm+place
+  canvas.addEventListener('dblclick', function(event) {
+    if (!playModeEnabled) return;
+    // Prevent this from also triggering the camera-reset dblclick handler
+    event.stopImmediatePropagation();
+    const loc = getRaycastIntersect(event.clientX, event.clientY);
+    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) return;
+    const aiColor = getAIColor();
+    const humanColor = aiColor === 'B' ? 'W' : 'B';
+    if (getNextPlayer() !== humanColor) return;
+    _commitStone(loc, humanColor, aiColor);
   });
 }
 
