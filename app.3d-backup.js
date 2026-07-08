@@ -62,11 +62,6 @@ let autoCamTarget = new THREE.Vector3(0, 0, 0);
 let autoCamPos = new THREE.Vector3(0, 72, 46);
 let manualCamOverride = false;
 
-// ── 2D/3D mode toggle ──
-let is2DMode = true; // Default: 2D top-down board
-// In 2D mode autoCamTarget is used for controls.target panning; autoCamPos is ignored
-const _2D_CAM_HEIGHT = 100; // orthographic camera height (arbitrary, doesn't affect ortho framing)
-
 window.toggleHoshiCam = function() {
     hoshiCamEnabled = !hoshiCamEnabled;
     const hoshiIcon = document.getElementById('hoshi-icon');
@@ -113,38 +108,16 @@ function updateAutoCamTarget(moveIdx) {
   
   // When reaching the end of the replay, smoothly return to the initial overview position
   if (!playModeEnabled && moveIdx === moveHistory.length - 1) {
-    if (is2DMode) {
-      autoCamTarget.set(0, 0, 0);
-    } else {
       autoCamTarget.set(0, 0, 10);
       autoCamPos.set(0, 72, 56);
-    }
-    return;
+      return;
   }
   const move = moveHistory[moveIdx];
   const stoneX = move.c * STEP_SIZE - GRID_OFFSET;
   const stoneZ = move.r * STEP_SIZE - GRID_OFFSET;
   
-  if (is2DMode) {
-    // 2D mode: pan controls.target to bring hoshi quadrant or stone into view
-    if (hoshiCamEnabled) {
-      const hoshis = [3, 9, 15];
-      const hoshiC = hoshis.reduce((prev, curr) => Math.abs(curr - move.c) < Math.abs(prev - move.c) ? curr : prev);
-      const hoshiR = hoshis.reduce((prev, curr) => Math.abs(curr - move.r) < Math.abs(prev - move.r) ? curr : prev);
-      autoCamTarget.set(
-        (hoshiC * STEP_SIZE - GRID_OFFSET) * 0.5, // gentle pan — keep full board visible
-        0,
-        (hoshiR * STEP_SIZE - GRID_OFFSET) * 0.5
-      );
-    } else {
-      // Auto-cam: mild pan toward stone, board stays mostly centered
-      autoCamTarget.set(stoneX * 0.35, 0, stoneZ * 0.35);
-    }
-    return;
-  }
-
-  // ── 3D Mode ──
   if (hoshiCamEnabled) {
+      // Find the nearest Hoshi point (indices 3, 9, 15)
       const hoshis = [3, 9, 15];
       const hoshiC = hoshis.reduce((prev, curr) => Math.abs(curr - move.c) < Math.abs(prev - move.c) ? curr : prev);
       const hoshiR = hoshis.reduce((prev, curr) => Math.abs(curr - move.r) < Math.abs(prev - move.r) ? curr : prev);
@@ -152,21 +125,31 @@ function updateAutoCamTarget(moveIdx) {
       const targetX = hoshiC * STEP_SIZE - GRID_OFFSET;
       const targetZ = hoshiR * STEP_SIZE - GRID_OFFSET;
       
+      // Target the Hoshi point
       autoCamTarget.set(targetX * 0.8, 0, targetZ * 0.8);
+      
+      // Prohibit full board flipping. Keep angle fixed at bottom edge (PI/2),
+      // with a slight parallax sway based on the stone's horizontal position for smoothness.
       const sway = (stoneX / GRID_OFFSET) * 0.25; 
       const angle = (Math.PI / 2) - sway; 
-      const dist = 48;
+      
+      const dist = 48; // Pull back slightly to keep the whole quadrant in view
       const height = 40;
+      
       autoCamPos.set(
         autoCamTarget.x + Math.cos(angle) * dist,
         height,
         autoCamTarget.z + Math.sin(angle) * dist
       );
   } else {
+      // Target closer to the actual stone so corners expose the surrounding area
       autoCamTarget.set(stoneX * 0.85, 0, stoneZ * 0.85);
+      
+      // Position camera at an angle relative to the stone (causes orbiting/flipping)
       const angle = Math.atan2(stoneZ, stoneX);
-      const dist = 35;
+      const dist = 35; // hover distance
       const height = 28; 
+      
       autoCamPos.set(
         autoCamTarget.x + Math.cos(angle) * dist,
         height,
@@ -405,26 +388,11 @@ function initThree() {
   cyanGlow.position.set(38, -1, 38);
   scene.add(cyanGlow);
 
-  if (is2DMode) {
-    // ── 2D Orthographic top-down camera ──
-    const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0; // same formula as createBoardMesh
-    const aspect = container.clientWidth / container.clientHeight;
-    const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05); // a touch more breathing room on portrait
-    camera = new THREE.OrthographicCamera(
-      -fs * aspect / 2,  fs * aspect / 2,
-       fs / 2,          -fs / 2,
-       0.1, 600
-    );
-    camera.up.set(0, 0, -1); // -Z = top of screen = row 19 (r=0)
-    camera.position.set(0, _2D_CAM_HEIGHT, 0);
-    camera.lookAt(0, 0, 0);
-  } else {
-    // ── 3D Perspective camera ──
-    camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.5, 600);
-    camera.position.set(0, 72, 56);
-    camera.lookAt(0, 0, 10);
-    updateCameraFov();
-  }
+  camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.5, 600);
+  camera.position.set(0, 72, 56);
+  camera.lookAt(0, 0, 10);
+  
+  updateCameraFov();
 
   window.toggleSidebar = function() {
     const sidebar = document.getElementById('sidebar');
@@ -444,33 +412,17 @@ function initThree() {
   container.appendChild(renderer.domElement);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
-  if (is2DMode) {
-    // 2D: top-down, pan + zoom only — no rotation allowed
-    controls.target.set(0, 0, 0);
-    controls.enableRotate = false;
-    controls.enablePan    = true;
-    controls.enableZoom   = true;
-    controls.enableDamping  = true;
-    controls.dampingFactor  = 0.07;
-    controls.minZoom = 0.5;  // zoomed out limit
-    controls.maxZoom = 12.0; // zoomed in limit (19×19 is detailed enough)
-    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
-    controls.screenSpacePanning = true;
-  } else {
-    // 3D: full orbit
-    controls.target.set(0, 0, 10);
-    controls.enableDamping  = true;
-    controls.dampingFactor  = 0.06;
-    controls.minPolarAngle  = Math.PI * 0.10;
-    controls.maxPolarAngle  = Math.PI * 0.40;
-    controls.minDistance    = 12;
-    controls.maxDistance    = 140;
-    controls.enablePan = true;
-    controls.screenSpacePanning = false;
-    controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-    controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  }
+  controls.target.set(0, 0, 10);
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.06;
+  controls.minPolarAngle  = Math.PI * 0.10;
+  controls.maxPolarAngle  = Math.PI * 0.40;  // was 0.46 — prevents nearly edge-on angles where far rows become untappable
+  controls.minDistance    = 12;
+  controls.maxDistance    = 140;
+  controls.enablePan = true;
+  controls.screenSpacePanning = false; // Pan moves parallel to the board (XZ plane), keeping height constant
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+  controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE };
 
   controls.update();
   controls.saveState();
@@ -910,11 +862,12 @@ function createBoardMesh() {
   const SLAB_H = 2.8;
   const SLAB_W = BOARD_UNITS + STEP_SIZE * 2.0;
 
-  // ── 1. Top surface — board grid texture ──
+  // ── 1. Top surface — board grid texture, rounded corners via alphaTest ──
+  // polygonOffset pushes it fractionally above the slab to prevent z-fighting
   const topMat = new THREE.MeshBasicMaterial({
     map:         generateBoardTexture(),
     transparent: true,
-    alphaTest:   0.5,
+    alphaTest:   0.5, // High threshold discards the semi-transparent anti-aliasing aura
     depthWrite:  true,
     polygonOffset:      true,
     polygonOffsetFactor: -1,
@@ -925,162 +878,171 @@ function createBoardMesh() {
   planeMesh.position.y = 0;
   scene.add(planeMesh);
 
-  if (!is2DMode) {
-    // ── 2. Slab body (3D only) ──
-    const rad3D = (150 / 3072) * SLAB_W;
-    const shape = new THREE.Shape();
-    const w = SLAB_W, h = SLAB_W, r = rad3D;
-    shape.moveTo(-w/2 + r, -h/2);
-    shape.lineTo(w/2 - r, -h/2);
-    shape.quadraticCurveTo(w/2, -h/2, w/2, -h/2 + r);
-    shape.lineTo(w/2, h/2 - r);
-    shape.quadraticCurveTo(w/2, h/2, w/2 - r, h/2);
-    shape.lineTo(-w/2 + r, h/2);
-    shape.quadraticCurveTo(-w/2, h/2, -w/2, h/2 - r);
-    shape.lineTo(-w/2, -h/2 + r);
-    shape.quadraticCurveTo(-w/2, -h/2, -w/2 + r, -h/2);
+  // ── 2. Slab body — Rounded ExtrudeGeometry ──
+  const rad3D = (150 / 3072) * SLAB_W;
+  const shape = new THREE.Shape();
+  const w = SLAB_W, h = SLAB_W, r = rad3D;
+  shape.moveTo(-w/2 + r, -h/2);
+  shape.lineTo(w/2 - r, -h/2);
+  shape.quadraticCurveTo(w/2, -h/2, w/2, -h/2 + r);
+  shape.lineTo(w/2, h/2 - r);
+  shape.quadraticCurveTo(w/2, h/2, w/2 - r, h/2);
+  shape.lineTo(-w/2 + r, h/2);
+  shape.quadraticCurveTo(-w/2, h/2, -w/2, h/2 - r);
+  shape.lineTo(-w/2, -h/2 + r);
+  shape.quadraticCurveTo(-w/2, -h/2, -w/2 + r, -h/2);
+  
+  const extrudeSettings = { depth: SLAB_H, bevelEnabled: false };
+  const boardGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  boardGeom.rotateX(Math.PI / 2);
+  
+  const sW = 4096;
+  const sH = 256;
+  const sideCanvas = document.createElement('canvas');
+  sideCanvas.width = sW;
+  sideCanvas.height = sH;
+  const sCtx = sideCanvas.getContext('2d');
+  
+  // Base gradient: match top board exactly but slightly darker towards bottom
+  const sGrad = sCtx.createLinearGradient(0, 0, 0, sH);
+  sGrad.addColorStop(0, '#facc15'); // top edge
+  sGrad.addColorStop(0.5, '#eab308');
+  sGrad.addColorStop(1, '#ca8a04'); // bottom edge
+  sCtx.fillStyle = sGrad;
+  sCtx.fillRect(0, 0, sW, sH);
+  
+  // Organic sweeping side grain (Itame/Masame blend)
+  sCtx.save();
+  sCtx.globalAlpha = 0.15;
+  for (let i = 0; i < 400; i++) {
+    sCtx.beginPath();
+    let startY = (Math.random() * sH * 2) - (sH * 0.5); 
     
-    const extrudeSettings = { depth: SLAB_H, bevelEnabled: false };
-    const boardGeom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    boardGeom.rotateX(Math.PI / 2);
+    // Calculate a perfectly repeating wavelength for seamless edges
+    let cycles = 1 + Math.floor(Math.random() * 3);
+    let waveLength = sW / (2 * Math.PI * cycles);
     
-    const sW = 4096;
-    const sH = 256;
-    const sideCanvas = document.createElement('canvas');
-    sideCanvas.width = sW;
-    sideCanvas.height = sH;
-    const sCtx = sideCanvas.getContext('2d');
+    let amplitude = 20 + Math.random() * 100;
+    let phase = Math.random() * Math.PI * 2;
     
-    const sGrad = sCtx.createLinearGradient(0, 0, 0, sH);
-    sGrad.addColorStop(0, '#facc15');
-    sGrad.addColorStop(0.5, '#eab308');
-    sGrad.addColorStop(1, '#ca8a04');
-    sCtx.fillStyle = sGrad;
-    sCtx.fillRect(0, 0, sW, sH);
-    
-    sCtx.save();
-    sCtx.globalAlpha = 0.15;
-    for (let i = 0; i < 400; i++) {
-      sCtx.beginPath();
-      let startY = (Math.random() * sH * 2) - (sH * 0.5); 
-      let cycles = 1 + Math.floor(Math.random() * 3);
-      let waveLength = sW / (2 * Math.PI * cycles);
-      let amplitude = 20 + Math.random() * 100;
-      let phase = Math.random() * Math.PI * 2;
-      sCtx.moveTo(0, startY + Math.sin(phase) * amplitude);
-      for (let x = 0; x <= sW; x += 40) {
-        let y = startY + Math.sin((x / waveLength) + phase) * amplitude;
-        y += Math.sin(x * 0.05) * 3;
-        sCtx.lineTo(x, y);
-      }
-      sCtx.lineWidth = 1 + Math.random() * 4;
-      sCtx.strokeStyle = Math.random() > 0.5 ? '#92400e' : '#b45309'; 
-      sCtx.stroke();
+    sCtx.moveTo(0, startY + Math.sin(phase) * amplitude);
+    for (let x = 0; x <= sW; x += 40) {
+      let y = startY + Math.sin((x / waveLength) + phase) * amplitude;
+      y += Math.sin(x * 0.05) * 3; // micro variations
+      sCtx.lineTo(x, y);
     }
-    sCtx.globalAlpha = 0.05;
-    for(let i = 0; i < 15; i++) {
-       sCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#713f12';
-       sCtx.beginPath();
-       sCtx.arc(Math.random() * sW, Math.random() * sH, 50 + Math.random()*200, 0, Math.PI * 2);
-       sCtx.fill();
+    sCtx.lineWidth = 1 + Math.random() * 4;
+    sCtx.strokeStyle = Math.random() > 0.5 ? '#92400e' : '#b45309'; 
+    sCtx.stroke();
+  }
+  
+  // Soft blending loops for physical depth
+  sCtx.globalAlpha = 0.05;
+  for(let i = 0; i < 15; i++) {
+     sCtx.fillStyle = Math.random() > 0.5 ? '#ffffff' : '#713f12';
+     sCtx.beginPath();
+     sCtx.arc(Math.random() * sW, Math.random() * sH, 50 + Math.random()*200, 0, Math.PI * 2);
+     sCtx.fill();
+  }
+  sCtx.restore();
+  
+  const sideTex = new THREE.CanvasTexture(sideCanvas);
+  sideTex.colorSpace = THREE.SRGBColorSpace;
+  sideTex.wrapS = THREE.RepeatWrapping;
+  sideTex.wrapT = THREE.RepeatWrapping;
+  // Repeat exactly once around the perimeter for a seamless, continuous wood block look
+  sideTex.repeat.set(1, 1); 
+
+  boardMesh = new THREE.Mesh(
+    boardGeom,
+    [
+      new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.1, roughness: 0.8 }), 
+      new THREE.MeshStandardMaterial({ 
+        map: sideTex, 
+        metalness: 0.0, // 0 metalness prevents neon ring from turning wood green
+        roughness: 1.0  // Matte physical wood
+      }) 
+    ]
+  );
+  boardMesh.position.set(0, 0, 0);
+  scene.add(boardMesh);
+
+  // ── 3. Neon rim ring — canvas-drawn rounded-rect border on a flat plane ──
+  // Sits just below the board surface; creates the purple→cyan glowing edge.
+  (() => {
+    const S = 1024, INSET = 14, CR = 80;
+    const rc = document.createElement('canvas');
+    rc.width = rc.height = S;
+    const rx = rc.getContext('2d');
+    rx.clearRect(0, 0, S, S);
+
+    function rr(x, y, w, h, r) {
+      rx.beginPath();
+      rx.moveTo(x+r, y); rx.lineTo(x+w-r, y);
+      rx.arcTo(x+w,y,   x+w,y+r,   r);
+      rx.lineTo(x+w, y+h-r);
+      rx.arcTo(x+w,y+h, x+w-r,y+h, r);
+      rx.lineTo(x+r, y+h);
+      rx.arcTo(x,y+h,   x,y+h-r,   r);
+      rx.lineTo(x, y+r);
+      rx.arcTo(x,y,     x+r,y,     r);
+      rx.closePath();
     }
-    sCtx.restore();
-    
-    const sideTex = new THREE.CanvasTexture(sideCanvas);
-    sideTex.colorSpace = THREE.SRGBColorSpace;
-    sideTex.wrapS = THREE.RepeatWrapping;
-    sideTex.wrapT = THREE.RepeatWrapping;
-    sideTex.repeat.set(1, 1); 
 
-    boardMesh = new THREE.Mesh(
-      boardGeom,
-      [
-        new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.1, roughness: 0.8 }), 
-        new THREE.MeshStandardMaterial({ 
-          map: sideTex, 
-          metalness: 0.0,
-          roughness: 1.0
-        }) 
-      ]
+    const grad = rx.createLinearGradient(0, S, S, 0);
+    grad.addColorStop(0,    '#a855f7');
+    grad.addColorStop(0.3,  '#7c3aed');
+    grad.addColorStop(0.5,  '#3b82f6');
+    grad.addColorStop(0.7,  '#0891b2');
+    grad.addColorStop(1,    '#06b6d4');
+
+    // Outer soft bloom
+    rx.globalAlpha = 0.20;
+    rx.strokeStyle = grad;
+    rx.lineWidth   = 55;
+    rr(INSET, INSET, S-INSET*2, S-INSET*2, CR); rx.stroke();
+
+    // Main crisp line
+    rx.globalAlpha = 1.0;
+    rx.lineWidth   = 14;
+    rr(INSET, INSET, S-INSET*2, S-INSET*2, CR); rx.stroke();
+
+    const rimTex = new THREE.CanvasTexture(rc);
+    rimTex.colorSpace = THREE.SRGBColorSpace;
+    const rim = new THREE.Mesh(
+      new THREE.PlaneGeometry(SLAB_W + 0.3, SLAB_W + 0.3),
+      new THREE.MeshBasicMaterial({
+        map:         rimTex,
+        transparent: true,
+        depthWrite:  false,
+        polygonOffset:      true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits:  -2,
+      })
     );
-    boardMesh.position.set(0, 0, 0);
-    scene.add(boardMesh);
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.y  = -0.04;
+    scene.add(rim);
+  })();
 
-    // ── 3. Neon rim ring (3D only) ──
-    (() => {
-      const S = 1024, INSET = 14, CR = 80;
-      const rc = document.createElement('canvas');
-      rc.width = rc.height = S;
-      const rx = rc.getContext('2d');
-      rx.clearRect(0, 0, S, S);
-
-      function rr(x, y, w, h, r) {
-        rx.beginPath();
-        rx.moveTo(x+r, y); rx.lineTo(x+w-r, y);
-        rx.arcTo(x+w,y,   x+w,y+r,   r);
-        rx.lineTo(x+w, y+h-r);
-        rx.arcTo(x+w,y+h, x+w-r,y+h, r);
-        rx.lineTo(x+r, y+h);
-        rx.arcTo(x,y+h,   x,y+h-r,   r);
-        rx.lineTo(x, y+r);
-        rx.arcTo(x,y,     x+r,y,     r);
-        rx.closePath();
-      }
-
-      const grad = rx.createLinearGradient(0, S, S, 0);
-      grad.addColorStop(0,    '#a855f7');
-      grad.addColorStop(0.3,  '#7c3aed');
-      grad.addColorStop(0.5,  '#3b82f6');
-      grad.addColorStop(0.7,  '#0891b2');
-      grad.addColorStop(1,    '#06b6d4');
-
-      rx.globalAlpha = 0.20;
-      rx.strokeStyle = grad;
-      rx.lineWidth   = 55;
-      rr(INSET, INSET, S-INSET*2, S-INSET*2, CR); rx.stroke();
-
-      rx.globalAlpha = 1.0;
-      rx.lineWidth   = 14;
-      rr(INSET, INSET, S-INSET*2, S-INSET*2, CR); rx.stroke();
-
-      const rimTex = new THREE.CanvasTexture(rc);
-      rimTex.colorSpace = THREE.SRGBColorSpace;
-      const rim = new THREE.Mesh(
-        new THREE.PlaneGeometry(SLAB_W + 0.3, SLAB_W + 0.3),
-        new THREE.MeshBasicMaterial({
-          map:         rimTex,
-          transparent: true,
-          depthWrite:  false,
-          polygonOffset:      true,
-          polygonOffsetFactor: -2,
-          polygonOffsetUnits:  -2,
-        })
-      );
-      rim.rotation.x = -Math.PI / 2;
-      rim.position.y  = -0.04;
-      scene.add(rim);
-    })();
-
-    // ── 4. Floating shadow (3D only) ──
-    const sc = document.createElement('canvas');
-    sc.width = sc.height = 512;
-    const sx = sc.getContext('2d');
-    const sg = sx.createRadialGradient(256,256,30,256,256,256);
-    sg.addColorStop(0,   'rgba(4,6,18,0.70)');
-    sg.addColorStop(0.5, 'rgba(4,6,18,0.20)');
-    sg.addColorStop(1,   'rgba(0,0,0,0)');
-    sx.fillStyle = sg; sx.fillRect(0,0,512,512);
-    const shadowMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(SLAB_W * 2.2, SLAB_W * 2.2),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false })
-    );
-    shadowMesh.rotation.x = -Math.PI / 2;
-    shadowMesh.position.y = -SLAB_H - 10;
-    scene.add(shadowMesh);
-  } // end !is2DMode
+  // ── 4. Floating shadow below ──
+  const sc = document.createElement('canvas');
+  sc.width = sc.height = 512;
+  const sx = sc.getContext('2d');
+  const sg = sx.createRadialGradient(256,256,30,256,256,256);
+  sg.addColorStop(0,   'rgba(4,6,18,0.70)');
+  sg.addColorStop(0.5, 'rgba(4,6,18,0.20)');
+  sg.addColorStop(1,   'rgba(0,0,0,0)');
+  sx.fillStyle = sg; sx.fillRect(0,0,512,512);
+  const shadowMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(SLAB_W * 2.2, SLAB_W * 2.2),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false })
+  );
+  shadowMesh.rotation.x = -Math.PI / 2;
+  shadowMesh.position.y = -SLAB_H - 10;
+  scene.add(shadowMesh);
 
   // ── Active Coordinates Mesh ──
-
   activeCoordCanvas = document.createElement('canvas');
   activeCoordCanvas.width = activeCoordCanvas.height = 4096;
   activeCoordCtx = activeCoordCanvas.getContext('2d');
@@ -1195,31 +1157,14 @@ function animate() {
       
       if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
           renderer.setSize(container.clientWidth, container.clientHeight, false);
-          if (is2DMode && camera.isOrthographicCamera) {
-            // Recompute ortho frustum on resize
-            const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
-            const aspect = container.clientWidth / container.clientHeight;
-            const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05);
-            camera.left   = -fs * aspect / 2;
-            camera.right  =  fs * aspect / 2;
-            camera.top    =  fs / 2;
-            camera.bottom = -fs / 2;
-            camera.updateProjectionMatrix();
-          } else if (!is2DMode) {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            updateCameraFov();
-          }
+          camera.aspect = container.clientWidth / container.clientHeight;
+          updateCameraFov();
       }
   }
   
   if (!manualCamOverride && autoCamEnabled && currentMoveIndex >= 0) {
     controls.target.lerp(autoCamTarget, 0.05);
-    if (!is2DMode) {
-      // In 3D mode also move camera position (orbit fly-to)
-      camera.position.lerp(autoCamPos, 0.05);
-    }
-    // In 2D mode: camera.position.y stays fixed; OrbitControls handles the pan
-    // by lerping controls.target above, which the controls pick up on next update()
+    camera.position.lerp(autoCamPos, 0.05);
   }
   
   if (typeof activeCoordMesh !== 'undefined' && activeCoordMesh) {
@@ -2723,31 +2668,21 @@ window.switchTab = function(tabName) {
 };
 
 function updateCameraFov() {
-  if (is2DMode) return; // Orthographic camera has no FOV
   const container = document.getElementById('three-container');
   if (!camera || !container) return;
   
   const isMobile = window.innerWidth <= 768;
 
   if (camera.aspect < 1.1) {
-    const targetHorizontalFovDeg = isMobile ? 24 : 30;
+    // Mobile/Portrait: fit to width tightly to maximize board size
+    const targetHorizontalFovDeg = isMobile ? 24 : 30; // 24 deg is extremely tight/large
     const targetHorizontalFovRad = THREE.MathUtils.degToRad(targetHorizontalFovDeg);
     const newVerticalFovRad = 2 * Math.atan(Math.tan(targetHorizontalFovRad / 2) / camera.aspect);
     camera.fov = THREE.MathUtils.radToDeg(newVerticalFovRad);
   } else {
+    // Desktop/Landscape: fit to height with margins
     camera.fov = isMobile ? 32 : 42;
   }
   
   camera.updateProjectionMatrix();
 }
-
-// ── Toggle 2D/3D board mode ──
-// In 2D mode: orthographic top-down, pan+zoom controls, no neon rim.
-// In 3D mode: perspective angled camera, full orbit controls, neon rim.
-// This requires a full page reload because Three.js camera/controls are
-// set up once at init time. is2DMode is read during initThree().
-window.toggle3DMode = function() {
-  is2DMode = !is2DMode;
-  // Reload to reinitialise the scene with the new camera type
-  location.reload();
-};
