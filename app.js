@@ -400,9 +400,9 @@ function initThree() {
   controls.enableDamping  = true;
   controls.dampingFactor  = 0.06;
   controls.minPolarAngle  = Math.PI * 0.10;
-  controls.maxPolarAngle  = Math.PI * 0.46;
-  controls.minDistance    = 2;
-  controls.maxDistance    = 200;
+  controls.maxPolarAngle  = Math.PI * 0.40;  // was 0.46 — prevents nearly edge-on angles where far rows become untappable
+  controls.minDistance    = 12;
+  controls.maxDistance    = 140;
   controls.enablePan = true;
   controls.screenSpacePanning = false; // Pan moves parallel to the board (XZ plane), keeping height constant
   controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
@@ -2235,75 +2235,182 @@ function setupBoardClick() {
   const canvas = renderer.domElement;
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  const _boardPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const _tmp = new THREE.Vector3();
 
-  let pointerDownX = 0, pointerDownY = 0;
-  canvas.addEventListener('pointerdown', e => {
-    pointerDownX = e.clientX;
-    pointerDownY = e.clientY;
-  });
+  let pointerDownX = 0, pointerDownY = 0, pointerDownTime = 0;
+  const TAP_MAX_MOVE = 12; // px
+  const TAP_MAX_TIME = 260; // ms
 
+  // ── Screen-space raycasting (the core fix: uniform hit tolerance regardless of depth) ──
   function getRaycastIntersect(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+    // Ray vs flat board plane → world-space land point
     const intersect = new THREE.Vector3();
-    raycaster.ray.intersectPlane(plane, intersect);
-    if (!intersect) return null;
-    
-    let minDist = STEP_SIZE * 0.8;
-    let bestC = -1, bestR = -1;
-    for (let r = 0; r < boardSize; r++) {
-      for (let c = 0; c < boardSize; c++) {
-        const gx = c * STEP_SIZE - GRID_OFFSET;
-        const gz = r * STEP_SIZE - GRID_OFFSET;
-        const dx = intersect.x - gx;
-        const dz = intersect.z - gz;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < minDist) {
-          minDist = dist;
-          bestC = c;
-          bestR = r;
-        }
+    if (!raycaster.ray.intersectPlane(_boardPlane, intersect)) return { c: -1, r: -1 };
+
+    // Closed-form nearest grid cell (O(1) guess)
+    const cGuess = Math.round((intersect.x + GRID_OFFSET) / STEP_SIZE);
+    const rGuess = Math.round((intersect.z + GRID_OFFSET) / STEP_SIZE);
+
+    // Check 3×3 neighborhood in SCREEN PIXELS — equal tap tolerance for near/far rows
+    const clientXRel = clientX - rect.left;
+    const clientYRel = clientY - rect.top;
+    let bestC = -1, bestR = -1, bestScreenDist = Infinity;
+
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const c = cGuess + dc, r = rGuess + dr;
+        if (c < 0 || c >= boardSize || r < 0 || r >= boardSize) continue;
+        _tmp.set(c * STEP_SIZE - GRID_OFFSET, 0, r * STEP_SIZE - GRID_OFFSET);
+        _tmp.project(camera);
+        const sx = (_tmp.x * 0.5 + 0.5) * rect.width;
+        const sy = (-_tmp.y * 0.5 + 0.5) * rect.height;
+        const d = Math.hypot(sx - clientXRel, sy - clientYRel);
+        if (d < bestScreenDist) { bestScreenDist = d; bestC = c; bestR = r; }
       }
     }
+
+    const MAX_TAP_PX = 30; // generous uniform CSS-pixel tolerance, angle/depth independent
+    if (bestScreenDist > MAX_TAP_PX) return { c: -1, r: -1 };
     return { c: bestC, r: bestR };
   }
 
-  canvas.addEventListener('pointermove', function(event) {
-    if (!playModeEnabled || event.pointerType !== 'mouse') return;
-    
-    const loc = getRaycastIntersect(event.clientX, event.clientY);
-    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
-      if (hoverRingMesh) hoverRingMesh.visible = false;
+  // ── Pointer down: record for tap/drag discrimination ──
+  canvas.addEventListener('pointerdown', e => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
+    pointerDownTime = performance.now();
+  });
+
+  // ── Precision touch: hold-and-slide (180ms threshold) ──
+  let pressTimer = null;
+  let precisionMode = false;
+
+  canvas.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || !playModeEnabled) return;
+    pressTimer = setTimeout(() => {
+      precisionMode = true;
+      controls.enabled = false; // freeze orbit while precision-placing
+      const loc = getRaycastIntersect(e.clientX, e.clientY);
+      if (loc && loc.c !== -1 && !boardState[loc.r][loc.c].player) {
+        hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+        hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+        const humanColor = getAIColor() === 'B' ? 'W' : 'B';
+        hoverRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
+        hoverRingMesh.visible = true;
+        lastRenderTime = 0;
+      }
+    }, 180);
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    // Mouse hover preview
+    if (e.pointerType === 'mouse') {
+      if (!playModeEnabled) return;
+      const loc = getRaycastIntersect(e.clientX, e.clientY);
+      if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
+        if (hoverRingMesh) hoverRingMesh.visible = false;
+        lastRenderTime = 0;
+        return;
+      }
+      const aiColor = getAIColor();
+      const humanColor = aiColor === 'B' ? 'W' : 'B';
+      if (getNextPlayer() !== humanColor) return;
+      if (pendingMove && pendingMove.c === loc.c && pendingMove.r === loc.r) {
+        if (hoverRingMesh) hoverRingMesh.visible = false;
+        return;
+      }
+      hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+      hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+      hoverRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
+      hoverRingMesh.visible = true;
       lastRenderTime = 0;
       return;
     }
-
-    const aiColor = getAIColor();
-    const humanColor = aiColor === 'B' ? 'W' : 'B';
-    const nextColor = getNextPlayer();
-    if (nextColor !== humanColor) return;
-
-    if (pendingMove && pendingMove.c === loc.c && pendingMove.r === loc.r) {
-      if (hoverRingMesh) hoverRingMesh.visible = false;
-      return;
+    // Touch precision drag
+    if (precisionMode) {
+      const loc = getRaycastIntersect(e.clientX, e.clientY);
+      if (loc && loc.c !== -1 && !boardState[loc.r][loc.c].player) {
+        hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+        hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+        hoverRingMesh.visible = true;
+        lastRenderTime = 0;
+      } else if (hoverRingMesh) {
+        hoverRingMesh.visible = false;
+      }
     }
-
-    hoverRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
-    hoverRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
-    hoverRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
-    hoverRingMesh.visible = true;
-    lastRenderTime = 0; // Force immediate render
+    // Cancel long-press timer if finger moved too far
+    if (pressTimer && Math.hypot(e.clientX - pointerDownX, e.clientY - pointerDownY) > TAP_MAX_MOVE) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
   });
 
   canvas.addEventListener('pointerup', function(event) {
+    clearTimeout(pressTimer);
+
+    // Guard: camera was actively rotating
+    if (isCameraDragging) {
+      precisionMode = false;
+      controls.enabled = true;
+      return;
+    }
+
+    // Precision touch commit
+    if (precisionMode) {
+      precisionMode = false;
+      controls.enabled = true;
+      if (!playModeEnabled) return;
+      const loc = getRaycastIntersect(event.clientX, event.clientY);
+      if (hoverRingMesh) hoverRingMesh.visible = false;
+      if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
+        if (navigator.vibrate) navigator.vibrate(15); // invalid target haptic
+        return;
+      }
+      const aiColor = getAIColor();
+      const humanColor = aiColor === 'B' ? 'W' : 'B';
+      if (getNextPlayer() !== humanColor) return;
+      // Arm or confirm
+      if (!pendingMove || pendingMove.c !== loc.c || pendingMove.r !== loc.r) {
+        pendingMove = { c: loc.c, r: loc.r };
+        pendingRingMesh.position.x = loc.c * STEP_SIZE - GRID_OFFSET;
+        pendingRingMesh.position.z = loc.r * STEP_SIZE - GRID_OFFSET;
+        pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
+        pendingRingMesh.visible = true;
+        if (navigator.vibrate) navigator.vibrate(8);
+        lastRenderTime = 0;
+        return;
+      }
+      // Confirmed
+      pendingMove = null;
+      if (pendingRingMesh) pendingRingMesh.visible = false;
+      if (navigator.vibrate) navigator.vibrate(10);
+      const letters = 'ABCDEFGHJKLMNOPQRST';
+      const label = letters[loc.c] + (boardSize - loc.r);
+      moveHistory.push({ color: humanColor, c: loc.c, r: loc.r, label });
+      goToMove(moveHistory.length - 1);
+      setTimeout(() => aiPlayMove(aiColor), 300);
+      return;
+    }
+
+    // Standard tap flow (quick tap)
     if (!playModeEnabled) return;
-    if (Math.abs(event.clientX - pointerDownX) > 15 || Math.abs(event.clientY - pointerDownY) > 15) return;
+    const dx = event.clientX - pointerDownX;
+    const dy = event.clientY - pointerDownY;
+    const dt = performance.now() - pointerDownTime;
+    if (Math.hypot(dx, dy) > TAP_MAX_MOVE || dt > TAP_MAX_TIME) return;
 
     const loc = getRaycastIntersect(event.clientX, event.clientY);
-    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) return;
+    if (!loc || loc.c === -1 || loc.r === -1 || boardState[loc.r][loc.c].player) {
+      if (navigator.vibrate) navigator.vibrate(15); // silent miss feedback
+      return;
+    }
 
     const aiColor = getAIColor();
     const humanColor = aiColor === 'B' ? 'W' : 'B';
@@ -2317,11 +2424,12 @@ function setupBoardClick() {
       pendingRingMesh.material.color.setHex(humanColor === 'B' ? 0x111111 : 0xffffff);
       pendingRingMesh.visible = true;
       if (hoverRingMesh) hoverRingMesh.visible = false;
-      lastRenderTime = 0; 
+      if (navigator.vibrate) navigator.vibrate(8);
+      lastRenderTime = 0;
       return;
     }
 
-    // Place stone
+    // Confirm stone placement
     pendingMove = null;
     if (pendingRingMesh) pendingRingMesh.visible = false;
 
