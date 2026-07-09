@@ -52,7 +52,44 @@ let fxEnabled = false;
 window.toggleFx = function() {
   fxEnabled = !fxEnabled;
   const btn = document.getElementById('btn-fx');
-  if (btn) btn.classList.toggle('active', fxEnabled);
+  if (btn) {
+    if (fxEnabled) {
+      btn.style.color = 'var(--accent-cyan)';
+      btn.style.background = 'rgba(6, 182, 212, 0.1)';
+      btn.style.borderColor = 'var(--accent-cyan)';
+    } else {
+      btn.style.color = 'var(--text-muted)';
+      btn.style.background = 'var(--panel-bg)';
+      btn.style.borderColor = 'var(--panel-border)';
+    }
+  }
+};
+
+// Coordinates visibility
+let showCoords = true;
+window.toggleCoords = function() {
+  showCoords = !showCoords;
+  const btn = document.getElementById('btn-coords');
+  if (btn) {
+    if (showCoords) {
+      btn.style.color = 'var(--text-muted)';
+      btn.style.background = 'var(--panel-bg)';
+      btn.style.borderColor = 'var(--panel-border)';
+      btn.title = 'Hide Coordinates';
+    } else {
+      btn.style.color = '#6b7280';
+      btn.style.background = 'rgba(107,114,128,0.1)';
+      btn.style.borderColor = '#6b7280';
+      btn.title = 'Show Coordinates';
+    }
+  }
+  // Redraw board texture with updated coord visibility
+  if (planeMesh && planeMesh.material && planeMesh.material.map) {
+    const tex = generateBoardTexture();
+    planeMesh.material.map = tex;
+    planeMesh.material.needsUpdate = true;
+    lastRenderTime = 0;
+  }
 };
 
 // Cinematic Auto-Camera
@@ -793,6 +830,14 @@ function _generateBoardTexture2D() {
   const WOOD_X = BORDER_PX, WOOD_Y = BORDER_PX;
   const WOOD_W = S - BORDER_PX * 2, WOOD_H = S - BORDER_PX * 2;
 
+  // Get current highlighted col/row from latest move
+  let highlightC = -1, highlightR = -1;
+  if (typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
+      typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]) {
+    const m = moveHistory[currentMoveIndex];
+    if (m.c !== undefined && m.c !== -1) { highlightC = m.c; highlightR = m.r; }
+  }
+
   function draw(woodImg) {
     ctx.clearRect(0, 0, S, S);
 
@@ -835,31 +880,34 @@ function _generateBoardTexture2D() {
     });
 
     // ── 6. Coordinate labels in the dark border strip ──
-    const fontSize = Math.round(STEP_PX * 0.68);  // proportional to grid step
-    ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
-    ctx.fillStyle = '#cccccc';
-    ctx.textBaseline = 'middle';
+    if (showCoords) {
+      const fontSize = Math.round(STEP_PX * 0.68);  // proportional to grid step
+      ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
+      ctx.textBaseline = 'middle';
 
-    const COLS = 'ABCDEFGHJKLMNOPQRST';
-    const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
-    const coordYTop = stripCenter;              // letters above board
-    const coordYBot = S - stripCenter;          // letters below board
-    const numXLeft  = stripCenter;              // numbers to left of board
-    const numXRight = S - stripCenter;          // numbers to right of board
+      const COLS = 'ABCDEFGHJKLMNOPQRST';
+      const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
+      const coordYTop = stripCenter;              // letters above board
+      const coordYBot = S - stripCenter;          // letters below board
+      const numXLeft  = stripCenter;              // numbers to left of board
+      const numXRight = S - stripCenter;          // numbers to right of board
 
-    // Column letters — top and bottom
-    ctx.textAlign = 'center';
-    for (let i = 0; i < GRID_LINES; i++) {
-      ctx.fillText(COLS[i], gp(i), coordYTop);
-      ctx.fillText(COLS[i], gp(i), coordYBot);
-    }
+      // Column letters — top and bottom
+      ctx.textAlign = 'center';
+      for (let i = 0; i < GRID_LINES; i++) {
+        ctx.fillStyle = (i === highlightC) ? '#4ade80' : '#cccccc';  // green for current col
+        ctx.fillText(COLS[i], gp(i), coordYTop);
+        ctx.fillText(COLS[i], gp(i), coordYBot);
+      }
 
-    // Row numbers — left and right (19 at top, 1 at bottom)
-    ctx.textAlign = 'center';
-    for (let i = 0; i < GRID_LINES; i++) {
-      const label = String(GRID_LINES - i);
-      ctx.fillText(label, numXLeft,  gp(i));
-      ctx.fillText(label, numXRight, gp(i));
+      // Row numbers — left and right (19 at top, 1 at bottom)
+      ctx.textAlign = 'center';
+      for (let i = 0; i < GRID_LINES; i++) {
+        ctx.fillStyle = (i === highlightR) ? '#4ade80' : '#cccccc';  // green for current row
+        const label = String(GRID_LINES - i);
+        ctx.fillText(label, numXLeft,  gp(i));
+        ctx.fillText(label, numXRight, gp(i));
+      }
     }
   }
 
@@ -2066,8 +2114,8 @@ function renderStones3D() {
         let stoneMat = isBlack ? blackStoneMat : whiteStoneMat;
         const mesh = new THREE.Mesh(stoneGeometry, stoneMat);
         
-        // Floating Crystal Pyramid & Sparks for current move
-        if (isCurrentMove) {
+        // Crystal Pyramid & Sparks — only in 3D mode (2D shows only the green dot marker)
+        if (isCurrentMove && !is2DMode) {
           currentRippleMesh = new THREE.Group();
           currentRippleMesh.userData = { isBlack, time: 0, sparks: [] };
           
@@ -2077,18 +2125,17 @@ function renderStones3D() {
           const pyrGeom = new THREE.ConeGeometry(pyrRadius, pyrHeight, 4);
           pyrGeom.rotateX(Math.PI); // Point downwards
           
-          // Diamond-like Physical Material
-          const baseColor = isBlack ? 0xff2200 : 0x0044ff; // Lava-red or Deep-blue
+          const baseColor = isBlack ? 0xff2200 : 0x0044ff;
           const pyrMat = new THREE.MeshPhysicalMaterial({
               color: baseColor,
-              transmission: 0.45,     // solid jewel-like (less transparent)
+              transmission: 0.45,
               opacity: 1,
               transparent: true,
               roughness: 0.1,
-              ior: 2.4,              // diamond refraction index
+              ior: 2.4,
               thickness: 0.5,
-              attenuationColor: baseColor,      // Tints the refracted light passing through!
-              attenuationDistance: STONE_R * 0.5, // Density of the color tint
+              attenuationColor: baseColor,
+              attenuationDistance: STONE_R * 0.5,
               side: THREE.DoubleSide
           });
           
@@ -2098,8 +2145,8 @@ function renderStones3D() {
           currentRippleMesh.userData.pyramid = pyramid;
           
           // 2. Electric Sparks Pool
-          const numSparks = 3; // Number of simultaneous lightning channels
-          const sparkCount = 10; // jagged points per spark
+          const numSparks = 3;
+          const sparkCount = 10;
           
           for (let i = 0; i < numSparks; i++) {
               const geom = new THREE.BufferGeometry();
@@ -2107,9 +2154,9 @@ function renderStones3D() {
               geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
               
               const sparkMat = new THREE.LineBasicMaterial({
-                  color: isBlack ? 0x0f172a : 0xffffff, // Black-based or White
+                  color: isBlack ? 0x0f172a : 0xffffff,
                   transparent: true,
-                  opacity: 0, // Hidden initially
+                  opacity: 0,
                   blending: isBlack ? THREE.NormalBlending : THREE.AdditiveBlending,
                   depthWrite: false
               });
@@ -2119,7 +2166,7 @@ function renderStones3D() {
               currentRippleMesh.userData.sparks.push({
                   mesh: sparkLine,
                   activeTime: 0,
-                  triggerDelay: Math.random() * 2.0 // Random staggered start
+                  triggerDelay: Math.random() * 2.0
               });
           }
           
@@ -2168,6 +2215,15 @@ function renderStones3D() {
     updateActiveCoordinates(currentMove.c, currentMove.r, currentMove.player);
   } else {
     updateActiveCoordinates(-1, -1, null);
+  }
+
+  // In 2D mode, refresh the board texture so the highlighted coordinate
+  // letters/numbers update to reflect the new current move
+  if (is2DMode && planeMesh && planeMesh.material) {
+    const newTex = _generateBoardTexture2D();
+    planeMesh.material.map = newTex;
+    planeMesh.material.needsUpdate = true;
+    lastRenderTime = 0;
   }
 }
 
