@@ -674,7 +674,7 @@ body {
 .board-container {
   flex: 1;
   background: transparent;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   position: relative;
   min-height: 400px;
   display: flex;
@@ -687,7 +687,7 @@ body {
   left: 0;
   width: 100% !important;
   height: 100% !important;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   touch-action: none;
 }
 

@@ -90,6 +90,10 @@ window.toggleCoords = function() {
     planeMesh.material.needsUpdate = true;
     lastRenderTime = 0;
   }
+  // Also clear the zoom overlay immediately when coords hidden
+  if (!showCoords && _overlayCanvas) {
+    _overlayCtx.clearRect(0, 0, _overlayCanvas.width, _overlayCanvas.height);
+  }
 };
 
 // Cinematic Auto-Camera
@@ -1704,6 +1708,135 @@ function animate() {
   // No CSS DOM projection needed for true 3D meshes
 
   renderer.render(scene, camera);
+
+  // Quarter-based zoom coordinate overlay
+  if (is2DMode && showCoords) updateCoordOverlay();
+}
+
+// ─── Quarter-based Coordinate Overlay ───────────────────────────────────────
+// When the user zooms in the overlay draws transparent col/row labels at the
+// screen edges, choosing which edges based on which board quadrant is centred.
+//
+//  Q1 (top-left  of board) → cols at TOP   of screen, rows at LEFT
+//  Q2 (top-right of board) → cols at TOP   of screen, rows at RIGHT
+//  Q3 (bot-left  of board) → cols at BOT   of screen, rows at LEFT
+//  Q4 (bot-right of board) → cols at BOT   of screen, rows at RIGHT
+//
+// The overlay fades in once zoom > threshold so it never clutters the full view.
+let _overlayCanvas = null, _overlayCtx = null;
+function updateCoordOverlay() {
+  if (!camera || !camera.isOrthographicCamera) return;
+
+  // Lazy-init
+  if (!_overlayCanvas) {
+    _overlayCanvas = document.getElementById('coord-overlay');
+    if (!_overlayCanvas) return;
+    _overlayCtx = _overlayCanvas.getContext('2d');
+  }
+  const oc = _overlayCanvas;
+  const ctx = _overlayCtx;
+
+  // Keep canvas pixel-perfect
+  const container = document.getElementById('three-container');
+  if (!container) return;
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  if (oc.width !== W || oc.height !== H) { oc.width = W; oc.height = H; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Determine zoom level: camera.zoom=1 → full board visible
+  // Only show overlay once zoomed in past ~1.8×
+  const zoom = camera.zoom || 1;
+  const ZOOM_THRESHOLD = 1.75;
+  if (zoom < ZOOM_THRESHOLD) return;
+
+  // Fade in smoothly between threshold and threshold+0.5
+  const alpha = Math.min(1, (zoom - ZOOM_THRESHOLD) / 0.5) * 0.82;
+
+  // World bounds visible through current orthographic camera
+  // For ortho: left/right/top/bottom are the frustum bounds in world space (before zoom)
+  // controls.target is the pan center
+  const cx = controls.target.x;
+  const cz = controls.target.z; // world Z = board row axis
+
+  const halfW = (camera.right - camera.left) / (2 * zoom);
+  const halfH = (camera.top  - camera.bottom) / (2 * zoom);
+
+  const worldLeft  = cx - halfW;
+  const worldRight = cx + halfW;
+  const worldTop   = cz - halfH;  // world -Z = top of screen (camera.up = (0,0,-1))
+  const worldBot   = cz + halfH;
+
+  // Which quadrant is the viewport centre in?
+  // Board centre is world (0, 0). Positive Z = bottom rows (r=18 = row 1)
+  const inLeftHalf  = cx < 0;
+  const inTopHalf   = cz < 0;  // world Z < 0 → top half of board (rows 10-19)
+
+  // Column letters: always A-S (skip I)
+  const COLS = 'ABCDEFGHJKLMNOPQRST';
+
+  // World X → screen X
+  function worldXtoScreen(wx) {
+    return ((wx - (cx - halfW)) / (halfW * 2)) * W;
+  }
+  // World Z → screen Y
+  function worldZtoScreen(wz) {
+    return ((wz - (cz - halfH)) / (halfH * 2)) * H;
+  }
+
+  // Find which grid col/row indices are visible
+  const MARGIN = 10; // px — only draw if the label fits on screen
+
+  const fontSize = Math.max(11, Math.min(16, Math.round(W / 32)));
+  ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+
+  const EDGE_PAD = 18; // px from edge where label is drawn
+  const HIGHLIGHT_COL = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
+                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
+                        ? moveHistory[currentMoveIndex].c : -1;
+  const HIGHLIGHT_ROW = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
+                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
+                        ? moveHistory[currentMoveIndex].r : -1;
+
+  // ── Column letters (top or bottom edge) ──
+  const colY = inTopHalf ? (H - EDGE_PAD) : EDGE_PAD;
+  ctx.textBaseline = 'middle';
+
+  for (let c = 0; c < boardSize; c++) {
+    const wx = c * STEP_SIZE - GRID_OFFSET;
+    const sx = worldXtoScreen(wx);
+    if (sx < MARGIN || sx > W - MARGIN) continue;
+    const isHL = (c === HIGHLIGHT_COL);
+    ctx.fillStyle = isHL
+      ? `rgba(74,222,128,${alpha})`
+      : `rgba(220,220,220,${alpha * 0.85})`;
+    ctx.shadowColor = isHL ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(COLS[c], sx, colY);
+  }
+
+  // ── Row numbers (left or right edge) ──
+  const rowX = inLeftHalf ? (W - EDGE_PAD) : EDGE_PAD;
+  ctx.textAlign = 'center';
+
+  for (let r = 0; r < boardSize; r++) {
+    const wz = r * STEP_SIZE - GRID_OFFSET;
+    const sy = worldZtoScreen(wz);
+    if (sy < MARGIN || sy > H - MARGIN) continue;
+    const isHL = (r === HIGHLIGHT_ROW);
+    ctx.fillStyle = isHL
+      ? `rgba(74,222,128,${alpha})`
+      : `rgba(220,220,220,${alpha * 0.85})`;
+    ctx.shadowColor = isHL ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 3;
+    const label = String(boardSize - r);
+    ctx.fillText(label, rowX, sy);
+  }
+
+  ctx.shadowBlur = 0;
 }
 
 // ---- Game Logic ----
