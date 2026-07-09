@@ -8,14 +8,14 @@
   <link rel="apple-touch-icon" href="PWA-icon-192.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="analytics.css?v=0.2.039">
+  <link rel="stylesheet" href="analytics.css?v=0.2.040">
   <link rel="stylesheet" href="libs/phosphor-regular.css">
   
 </head>
 <body>
 <div id="version-stamp" style="position: fixed; top: 8px; right: 8px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 99999; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; pointer-events: none; border: 1px solid rgba(251,191,36,0.3);">
-  Deployed Ver.: 0.2.039<br>
-  Last Update: Jul 9, 2026 : 17:43:00
+  Deployed Ver.: 0.2.040<br>
+  Last Update: Jul 9, 2026 : 17:57:00
 </div>
 <div id="debug-error" style="position:fixed; top:0; left:0; right:0; background:red; color:white; z-index:99999; padding:20px; font-family:monospace; display:none; white-space:pre-wrap;"></div>
 <script>
@@ -236,6 +236,7 @@ window.addEventListener('unhandledrejection', function(event) {
                 <button class="icon-btn-square" onclick="toggleSidebar()"><i class="ph ph-sidebar-simple"></i></button>
             </div>
             <div class="tb-right" style="display: flex; gap: 8px;">
+                <button class="icon-btn-square" id="btn-reset-pos" onclick="resetBoardPosition()" title="Reset board position" style="font-size:18px;"><i class="ph ph-arrows-in-simple"></i></button>
                 <button class="icon-btn-square" id="btn-cam-auto" onclick="toggleAutoCam()" style="width:auto; padding:0 12px; font-size:12px; font-weight:500;"><i class="ph ph-video-camera" style="margin-right:6px;" id="cam-icon"></i> <span id="cam-label">Auto-Cam</span></button>
                 <button class="icon-btn-square" id="btn-fx" onclick="toggleFx()" style="width:auto; padding:0 12px; font-size:12px; font-weight:500;"><i class="ph ph-magic-wand" style="margin-right:6px;"></i> VFX</button>
                 <button class="icon-btn-square" id="btn-coords" onclick="toggleCoords()" title="Hide Coordinates" style="width:auto; padding:0 10px; font-size:12px; font-weight:500;"><i class="ph ph-hash" style="margin-right:4px;"></i> Coords</button>
@@ -402,7 +403,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.2.039"></script>
+<script defer src="libs/OrbitControls.js?v=0.2.040"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -411,7 +412,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.2.039"></script>
+<script defer src="app.js?v=0.2.040"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

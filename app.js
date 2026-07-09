@@ -391,23 +391,48 @@ const dropShadowMat = new THREE.MeshBasicMaterial({
   polygonOffsetUnits: -4
 });
 
-const placeSound   = new Audio('sfx/scifi-stone-placing.wav');
-const unplaceSound = new Audio('sfx/scifi-stone-unplacing.wav');
-const armlockSound = new Audio('sfx/armlock.wav');
-const tnockSound   = new Audio('sfx/tnock.wav');
-armlockSound.preload = 'auto';
-tnockSound.preload   = 'auto';
+// ─── Audio Engine (Web Audio API) ───────────────────────────────────────────
+// Using AudioContext + decodeAudioData so every play creates a fresh
+// BufferSourceNode → no currentTime-reset race condition, consistent volume.
+const _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const _audioBufs = {};
 
-function playArmlock() {
-  armlockSound.currentTime = 0;
-  armlockSound.volume = 0.7;
-  armlockSound.play().catch(() => {});
+function _loadAudio(name, url) {
+  fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(ab => _audioCtx.decodeAudioData(ab))
+    .then(buf => { _audioBufs[name] = buf; })
+    .catch(() => console.warn('Audio load failed:', url));
 }
-function playTnock() {
-  tnockSound.currentTime = 0;
-  tnockSound.volume = 0.8;
-  tnockSound.play().catch(() => {});
+_loadAudio('place',   'sfx/scifi-stone-placing.wav');
+_loadAudio('unplace', 'sfx/scifi-stone-unplacing.wav');
+_loadAudio('armlock', 'sfx/armlock.wav');
+_loadAudio('tnock',   'sfx/tnock.wav');
+
+function _playBuf(name, volume) {
+  const buf = _audioBufs[name];
+  if (!buf) return;
+  // Resume context if suspended (browser autoplay policy)
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  const src  = _audioCtx.createBufferSource();
+  const gain = _audioCtx.createGain();
+  src.buffer = buf;
+  src.connect(gain);
+  gain.connect(_audioCtx.destination);
+  gain.gain.setValueAtTime(volume, _audioCtx.currentTime);
+  src.start(0);
 }
+
+function playArmlock() { _playBuf('armlock', 0.75); }
+function playTnock()   { _playBuf('tnock',   0.85); }
+function _playPlace()  { _playBuf('place',   0.65); }
+function _playUnplace(){ _playBuf('unplace', 0.65); }
+
+// Resume AudioContext on first user interaction (iOS/Chrome policy)
+document.addEventListener('pointerdown', () => {
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+}, { once: true });
+
 
 const highlightMaterials = {
   danger: new THREE.MeshBasicMaterial({ color: 0xdc2626, transparent: true, opacity: 0.6 }),
@@ -682,8 +707,11 @@ function initThree() {
     animateReset();
   }
   
-  renderer.domElement.addEventListener('dblclick', handleCanvasDblTapClick);
-  renderer.domElement.addEventListener('touchend', handleCanvasDblTapClick, { passive: false });
+  // Expose reset as a callable function (button in toolbar triggers this directly)
+  window.resetBoardPosition = function() { handleCanvasDblTapClick(null); };
+
+  // REMOVED: dblclick/touchend canvas listeners — reset is now toolbar-button only.
+  // This prevents collisions with stone-placement double-tap in play mode.
 
   createBoardMesh();
 
@@ -881,7 +909,7 @@ function _generateBoardTexture2D() {
 
     // ── 6. Coordinate labels in the dark border strip ──
     if (showCoords) {
-      const fontSize = Math.round(STEP_PX * 0.68);  // proportional to grid step
+      const fontSize = Math.round(STEP_PX * 0.52);  // proportional to grid step (smaller)
       ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
       ctx.textBaseline = 'middle';
 
@@ -1905,19 +1933,14 @@ function goToMove(targetIdx) {
   if (targetIdx >= moveHistory.length) targetIdx = moveHistory.length - 1;
   
   if (targetIdx > currentMoveIndex) {
-    placeSound.currentTime = 0;
-    placeSound.volume = 0.6;
-    placeSound.play().catch(e => console.log('Audio play failed', e));
-    
+    _playPlace();
     // Trigger wave if moving forward one step
     if (targetIdx === currentMoveIndex + 1 && targetIdx >= 0 && targetIdx < moveHistory.length) {
       const m = moveHistory[targetIdx];
       createWaveAnimation(m.c, m.r, m.color);
     }
   } else if (targetIdx < currentMoveIndex) {
-    unplaceSound.currentTime = 0;
-    unplaceSound.volume = 0.6;
-    unplaceSound.play().catch(e => console.log('Audio play failed', e));
+    _playUnplace();
   }
   
   // For simplicity, reconstruct from 0 to targetIdx
