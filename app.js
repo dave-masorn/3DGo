@@ -516,18 +516,12 @@ function initThree() {
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   if (is2DMode) {
-    // 2D: top-down, pan + zoom only — no rotation allowed
+    // 2D: top-down, fixed viewport matching the exact grid requirements
     controls.target.set(0, 0, 0);
     controls.enableRotate = false;
-    controls.enablePan    = true;
-    controls.enableZoom   = true;
-    controls.enableDamping  = true;
-    controls.dampingFactor  = 0.07;
-    controls.minZoom = 0.5;  // zoomed out limit
-    controls.maxZoom = 12.0; // zoomed in limit (19×19 is detailed enough)
-    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
-    controls.screenSpacePanning = true;
+    controls.enablePan    = false;
+    controls.enableZoom   = false;
+    controls.enableDamping  = false;
   } else {
     // 3D: full orbit
     controls.target.set(0, 0, 10);
@@ -727,7 +721,7 @@ function initThree() {
     if (is2DMode && camera.isOrthographicCamera) {
       const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
       const aspect = w / h;
-      const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05);
+      const fs = SLAB_W_EST * (aspect < 1 ? 1.0 : 1.0); // Exact fit for 2D fixed view
       camera.left   = -fs * aspect / 2;
       camera.right  =  fs * aspect / 2;
       camera.top    =  fs / 2;
@@ -911,36 +905,7 @@ function _generateBoardTexture2D() {
       ctx.fill();
     });
 
-    // ── 6. Coordinate labels in the dark border strip ──
-    if (showCoords) {
-      const fontSize = Math.round(STEP_PX * 0.52);  // proportional to grid step (smaller)
-      ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", "Helvetica Neue", sans-serif`;
-      ctx.textBaseline = 'middle';
-
-      const COLS = 'ABCDEFGHJKLMNOPQRST';
-      const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
-      const coordYTop = stripCenter;              // letters above board
-      const coordYBot = S - stripCenter;          // letters below board
-      const numXLeft  = stripCenter;              // numbers to left of board
-      const numXRight = S - stripCenter;          // numbers to right of board
-
-      // Column letters — top and bottom
-      ctx.textAlign = 'center';
-      for (let i = 0; i < GRID_LINES; i++) {
-        ctx.fillStyle = (i === highlightC) ? '#4ade80' : '#cccccc';  // green for current col
-        ctx.fillText(COLS[i], gp(i), coordYTop);
-        ctx.fillText(COLS[i], gp(i), coordYBot);
-      }
-
-      // Row numbers — left and right (19 at top, 1 at bottom)
-      ctx.textAlign = 'center';
-      for (let i = 0; i < GRID_LINES; i++) {
-        ctx.fillStyle = (i === highlightR) ? '#4ade80' : '#cccccc';  // green for current row
-        const label = String(GRID_LINES - i);
-        ctx.fillText(label, numXLeft,  gp(i));
-        ctx.fillText(label, numXRight, gp(i));
-      }
-    }
+    // Coordinates are now drawn externally on the fixed overlay layer
   }
 
 
@@ -1460,7 +1425,7 @@ function animate() {
             // Recompute ortho frustum on resize
             const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
             const aspect = container.clientWidth / container.clientHeight;
-            const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05);
+            const fs = SLAB_W_EST * (aspect < 1 ? 1.0 : 1.0); // Exact fit
             camera.left   = -fs * aspect / 2;
             camera.right  =  fs * aspect / 2;
             camera.top    =  fs / 2;
@@ -1713,16 +1678,10 @@ function animate() {
   if (is2DMode && showCoords) updateCoordOverlay();
 }
 
-// ─── Quarter-based Coordinate Overlay ───────────────────────────────────────
-// When the user zooms in the overlay draws transparent col/row labels at the
-// screen edges, choosing which edges based on which board quadrant is centred.
-//
-//  Q1 (top-left  of board) → cols at TOP   of screen, rows at LEFT
-//  Q2 (top-right of board) → cols at TOP   of screen, rows at RIGHT
-//  Q3 (bot-left  of board) → cols at BOT   of screen, rows at LEFT
-//  Q4 (bot-right of board) → cols at BOT   of screen, rows at RIGHT
-//
-// The overlay fades in once zoom > threshold so it never clutters the full view.
+// ─── Fixed Coordinate Overlay ───────────────────────────────────────────────
+// In 2D mode, the board is perfectly static (no pan/zoom). This overlay draws
+// the coordinates crisply in the native DOM resolution on top of the dark
+// border, perfectly aligned with the projected 3D grid lines.
 let _overlayCanvas = null, _overlayCtx = null;
 function updateCoordOverlay() {
   if (!camera || !camera.isOrthographicCamera) return;
@@ -1736,7 +1695,6 @@ function updateCoordOverlay() {
   const oc = _overlayCanvas;
   const ctx = _overlayCtx;
 
-  // Keep canvas pixel-perfect
   const container = document.getElementById('three-container');
   if (!container) return;
   const W = container.clientWidth;
@@ -1745,55 +1703,21 @@ function updateCoordOverlay() {
 
   ctx.clearRect(0, 0, W, H);
 
-  // Determine zoom level: camera.zoom=1 → full board visible
-  // Only show overlay once zoomed in past ~1.8×
   const zoom = camera.zoom || 1;
-  const ZOOM_THRESHOLD = 1.75;
-  if (zoom < ZOOM_THRESHOLD) return;
-
-  // Fade in smoothly between threshold and threshold+0.5
-  const alpha = Math.min(1, (zoom - ZOOM_THRESHOLD) / 0.5) * 0.82;
-
-  // World bounds visible through current orthographic camera
-  // For ortho: left/right/top/bottom are the frustum bounds in world space (before zoom)
-  // controls.target is the pan center
   const cx = controls.target.x;
-  const cz = controls.target.z; // world Z = board row axis
-
+  const cz = controls.target.z;
   const halfW = (camera.right - camera.left) / (2 * zoom);
   const halfH = (camera.top  - camera.bottom) / (2 * zoom);
 
-  const worldLeft  = cx - halfW;
-  const worldRight = cx + halfW;
-  const worldTop   = cz - halfH;  // world -Z = top of screen (camera.up = (0,0,-1))
-  const worldBot   = cz + halfH;
+  function worldXtoScreen(wx) { return ((wx - (cx - halfW)) / (halfW * 2)) * W; }
+  function worldZtoScreen(wz) { return ((wz - (cz - halfH)) / (halfH * 2)) * H; }
 
-  // Which quadrant is the viewport centre in?
-  // Board centre is world (0, 0). Positive Z = bottom rows (r=18 = row 1)
-  const inLeftHalf  = cx < 0;
-  const inTopHalf   = cz < 0;  // world Z < 0 → top half of board (rows 10-19)
-
-  // Column letters: always A-S (skip I)
-  const COLS = 'ABCDEFGHJKLMNOPQRST';
-
-  // World X → screen X
-  function worldXtoScreen(wx) {
-    return ((wx - (cx - halfW)) / (halfW * 2)) * W;
-  }
-  // World Z → screen Y
-  function worldZtoScreen(wz) {
-    return ((wz - (cz - halfH)) / (halfH * 2)) * H;
-  }
-
-  // Find which grid col/row indices are visible
-  const MARGIN = 10; // px — only draw if the label fits on screen
-
-  const fontSize = Math.max(11, Math.min(16, Math.round(W / 32)));
-  ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
+  // Font setup (slightly smaller as requested)
+  const fontSize = Math.max(10, Math.min(14, Math.round(W / 40)));
+  ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'center';
 
-  const EDGE_PAD = 18; // px from edge where label is drawn
   const HIGHLIGHT_COL = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
                         typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
                         ? moveHistory[currentMoveIndex].c : -1;
@@ -1801,42 +1725,35 @@ function updateCoordOverlay() {
                         typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
                         ? moveHistory[currentMoveIndex].r : -1;
 
-  // ── Column letters (top or bottom edge) ──
-  const colY = inTopHalf ? (H - EDGE_PAD) : EDGE_PAD;
-  ctx.textBaseline = 'middle';
+  // The dark border center in world coordinates (5.8% of SLAB width)
+  const BORDER_WORLD = 31.086; 
+  const coordYTop = worldZtoScreen(-BORDER_WORLD);
+  const coordYBot = worldZtoScreen(BORDER_WORLD);
+  const numXLeft  = worldXtoScreen(-BORDER_WORLD);
+  const numXRight = worldXtoScreen(BORDER_WORLD);
 
+  const COLS = 'ABCDEFGHJKLMNOPQRST';
+
+  // Columns
   for (let c = 0; c < boardSize; c++) {
     const wx = c * STEP_SIZE - GRID_OFFSET;
     const sx = worldXtoScreen(wx);
-    if (sx < MARGIN || sx > W - MARGIN) continue;
     const isHL = (c === HIGHLIGHT_COL);
-    ctx.fillStyle = isHL
-      ? `rgba(74,222,128,${alpha})`
-      : `rgba(220,220,220,${alpha * 0.85})`;
-    ctx.shadowColor = isHL ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 3;
-    ctx.fillText(COLS[c], sx, colY);
+    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
+    ctx.fillText(COLS[c], sx, coordYTop);
+    ctx.fillText(COLS[c], sx, coordYBot);
   }
 
-  // ── Row numbers (left or right edge) ──
-  const rowX = inLeftHalf ? (W - EDGE_PAD) : EDGE_PAD;
-  ctx.textAlign = 'center';
-
+  // Rows
   for (let r = 0; r < boardSize; r++) {
     const wz = r * STEP_SIZE - GRID_OFFSET;
     const sy = worldZtoScreen(wz);
-    if (sy < MARGIN || sy > H - MARGIN) continue;
     const isHL = (r === HIGHLIGHT_ROW);
-    ctx.fillStyle = isHL
-      ? `rgba(74,222,128,${alpha})`
-      : `rgba(220,220,220,${alpha * 0.85})`;
-    ctx.shadowColor = isHL ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 3;
+    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
     const label = String(boardSize - r);
-    ctx.fillText(label, rowX, sy);
+    ctx.fillText(label, numXLeft, sy);
+    ctx.fillText(label, numXRight, sy);
   }
-
-  ctx.shadowBlur = 0;
 }
 
 // ---- Game Logic ----
