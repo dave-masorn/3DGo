@@ -1115,22 +1115,22 @@ body {
 
 /* MOBILE (<768px) */
 @media (max-width: 768px) {
-  /* Prevent vertical scrolling on mobile to keep app feeling like native */
+  /* Allow vertical scrolling on mobile for natural layout */
   body {
-    overflow: hidden;
+    overflow-y: auto;
   }
   #app {
-    height: 100dvh;
     min-height: 100dvh;
+    height: auto;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
   
   #main {
     padding: 0;
-    gap: 0; /* No gap between sections to match architecture guide */
-    overflow: hidden;
+    gap: 0;
+    overflow: visible;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -1203,14 +1203,15 @@ body {
   .bottom-tab-text { font-size: 8.5px !important; }
 
   .col-center {
-    flex: 1 !important; /* Takes exactly remaining space, never jumps */
+    flex: none !important; /* Do not stretch to fill remaining space, to avoid empty gaps */
   }
   
   .col-center > .widget {
-    padding: 16px 0 !important;
+    padding: 0 !important;
     border-radius: 0;
     border-left: none;
     border-right: none;
+    margin-bottom: 0 !important;
   }
   
   .board-header, .board-controls {
