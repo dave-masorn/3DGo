@@ -480,7 +480,9 @@ function initThree() {
     // ── 2D Orthographic top-down camera ──
     const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0; // same formula as createBoardMesh
     const aspect = container.clientWidth / container.clientHeight;
-    const fs = SLAB_W_EST * (aspect < 1 ? 1.15 : 1.05); // a touch more breathing room on portrait
+    let fs = SLAB_W_EST;
+    if (aspect < 1) fs = SLAB_W_EST / aspect;
+    fs *= 1.02; // Small margin
     camera = new THREE.OrthographicCamera(
       -fs * aspect / 2,  fs * aspect / 2,
        fs / 2,          -fs / 2,
