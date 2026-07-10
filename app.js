@@ -1710,7 +1710,7 @@ function animate() {
   }
 
   // No CSS DOM projection needed for true 3D meshes
-
+  renderer.render(scene, camera);
 }
 
 // ---- Game Logic ----
