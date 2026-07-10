@@ -913,36 +913,7 @@ function _generateBoardTexture2D() {
       ctx.fill();
     });
 
-    // ── 6. Coordinate labels in the dark border strip ──
-    if (showCoords) {
-      const fontSize = Math.round(STEP_PX * 0.45);  // slightly smaller font size as requested
-      ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
-      ctx.textBaseline = 'middle';
-
-      const COLS = 'ABCDEFGHJKLMNOPQRST';
-      const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
-      const coordYTop = stripCenter;              // letters above board
-      const coordYBot = S - stripCenter;          // letters below board
-      const numXLeft  = stripCenter;              // numbers to left of board
-      const numXRight = S - stripCenter;          // numbers to right of board
-
-      // Column letters — top and bottom
-      ctx.textAlign = 'center';
-      for (let i = 0; i < GRID_LINES; i++) {
-        ctx.fillStyle = (i === highlightC) ? '#4ade80' : '#cccccc';  // green for current col
-        ctx.fillText(COLS[i], gp(i), coordYTop);
-        ctx.fillText(COLS[i], gp(i), coordYBot);
-      }
-
-      // Row numbers — left and right (19 at top, 1 at bottom)
-      ctx.textAlign = 'center';
-      for (let i = 0; i < GRID_LINES; i++) {
-        ctx.fillStyle = (i === highlightR) ? '#4ade80' : '#cccccc';  // green for current row
-        const label = String(GRID_LINES - i);
-        ctx.fillText(label, numXLeft,  gp(i));
-        ctx.fillText(label, numXRight, gp(i));
-      }
-    }
+    // Coordinates are now drawn eternally on the fixed clamping overlay layer
   }
 
 
@@ -1711,6 +1682,86 @@ function animate() {
 
   // No CSS DOM projection needed for true 3D meshes
   renderer.render(scene, camera);
+
+  // Clamped coordinate overlay that stays fixed on screen but aligns to grid
+  if (is2DMode && showCoords) updateCoordOverlay();
+}
+
+// ─── Fixed Clamped Coordinate Overlay ──────────────────────────────────────
+let _overlayCanvas = null, _overlayCtx = null;
+function updateCoordOverlay() {
+  if (!camera || !camera.isOrthographicCamera) return;
+
+  if (!_overlayCanvas) {
+    _overlayCanvas = document.getElementById('coord-overlay');
+    if (!_overlayCanvas) return;
+    _overlayCtx = _overlayCanvas.getContext('2d');
+  }
+  const oc = _overlayCanvas;
+  const ctx = _overlayCtx;
+
+  const container = document.getElementById('three-container');
+  if (!container) return;
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  if (oc.width !== W || oc.height !== H) { oc.width = W; oc.height = H; }
+
+  ctx.clearRect(0, 0, W, H);
+
+  const zoom = camera.zoom || 1;
+  const cx = controls.target.x;
+  const cz = controls.target.z;
+  const halfW = (camera.right - camera.left) / (2 * zoom);
+  const halfH = (camera.top  - camera.bottom) / (2 * zoom);
+
+  function worldXtoScreen(wx) { return ((wx - (cx - halfW)) / (halfW * 2)) * W; }
+  function worldZtoScreen(wz) { return ((wz - (cz - halfH)) / (halfH * 2)) * H; }
+
+  const fontSize = Math.max(10, Math.min(13, Math.round(W / 45)));
+  ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+
+  const HIGHLIGHT_COL = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
+                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
+                        ? moveHistory[currentMoveIndex].c : -1;
+  const HIGHLIGHT_ROW = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
+                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
+                        ? moveHistory[currentMoveIndex].r : -1;
+
+  // Track the dark border of the board (31.086 world units)
+  const BORDER_WORLD = 31.086; 
+  // Clamp so they never go off-screen!
+  const EDGE_PAD = 14; 
+  
+  const coordYTop = Math.max(EDGE_PAD, worldZtoScreen(-BORDER_WORLD));
+  const coordYBot = Math.min(H - EDGE_PAD, worldZtoScreen(BORDER_WORLD));
+  const numXLeft  = Math.max(EDGE_PAD, worldXtoScreen(-BORDER_WORLD));
+  const numXRight = Math.min(W - EDGE_PAD, worldXtoScreen(BORDER_WORLD));
+
+  const COLS = 'ABCDEFGHJKLMNOPQRST';
+
+  for (let c = 0; c < boardSize; c++) {
+    const wx = c * STEP_SIZE - GRID_OFFSET;
+    const sx = worldXtoScreen(wx);
+    // Don't draw if the grid line itself is off-screen
+    if (sx < -20 || sx > W + 20) continue;
+    const isHL = (c === HIGHLIGHT_COL);
+    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
+    ctx.fillText(COLS[c], sx, coordYTop);
+    ctx.fillText(COLS[c], sx, coordYBot);
+  }
+
+  for (let r = 0; r < boardSize; r++) {
+    const wz = r * STEP_SIZE - GRID_OFFSET;
+    const sy = worldZtoScreen(wz);
+    if (sy < -20 || sy > H + 20) continue;
+    const isHL = (r === HIGHLIGHT_ROW);
+    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
+    const label = String(boardSize - r);
+    ctx.fillText(label, numXLeft, sy);
+    ctx.fillText(label, numXRight, sy);
+  }
 }
 
 // ---- Game Logic ----
