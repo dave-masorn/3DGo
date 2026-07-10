@@ -1708,14 +1708,15 @@ function updateCoordOverlay() {
 
   ctx.clearRect(0, 0, W, H);
 
-  const zoom = camera.zoom || 1;
-  const cx = controls.target.x;
-  const cz = controls.target.z;
-  const halfW = (camera.right - camera.left) / (2 * zoom);
-  const halfH = (camera.top  - camera.bottom) / (2 * zoom);
+  // FIXED AS INITIAL: Use initial camera state (zoom=1, center=0,0) so coordinates never move!
+  const initialZoom = 1;
+  const initialCx = 0;
+  const initialCz = 0;
+  const halfW = (camera.right - camera.left) / (2 * initialZoom);
+  const halfH = (camera.top  - camera.bottom) / (2 * initialZoom);
 
-  function worldXtoScreen(wx) { return ((wx - (cx - halfW)) / (halfW * 2)) * W; }
-  function worldZtoScreen(wz) { return ((wz - (cz - halfH)) / (halfH * 2)) * H; }
+  function worldXtoScreen(wx) { return ((wx - (initialCx - halfW)) / (halfW * 2)) * W; }
+  function worldZtoScreen(wz) { return ((wz - (initialCz - halfH)) / (halfH * 2)) * H; }
 
   const fontSize = Math.max(10, Math.min(13, Math.round(W / 45)));
   ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
@@ -1729,23 +1730,18 @@ function updateCoordOverlay() {
                         typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
                         ? moveHistory[currentMoveIndex].r : -1;
 
-  // Track the dark border of the board (31.086 world units)
+  // Project the dark border (31.086 world units) using the fixed initial camera
   const BORDER_WORLD = 31.086; 
-  // Clamp so they never go off-screen!
-  const EDGE_PAD = 14; 
-  
-  const coordYTop = Math.max(EDGE_PAD, worldZtoScreen(-BORDER_WORLD));
-  const coordYBot = Math.min(H - EDGE_PAD, worldZtoScreen(BORDER_WORLD));
-  const numXLeft  = Math.max(EDGE_PAD, worldXtoScreen(-BORDER_WORLD));
-  const numXRight = Math.min(W - EDGE_PAD, worldXtoScreen(BORDER_WORLD));
+  const coordYTop = worldZtoScreen(-BORDER_WORLD);
+  const coordYBot = worldZtoScreen(BORDER_WORLD);
+  const numXLeft  = worldXtoScreen(-BORDER_WORLD);
+  const numXRight = worldXtoScreen(BORDER_WORLD);
 
   const COLS = 'ABCDEFGHJKLMNOPQRST';
 
   for (let c = 0; c < boardSize; c++) {
     const wx = c * STEP_SIZE - GRID_OFFSET;
     const sx = worldXtoScreen(wx);
-    // Don't draw if the grid line itself is off-screen
-    if (sx < -20 || sx > W + 20) continue;
     const isHL = (c === HIGHLIGHT_COL);
     ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
     ctx.fillText(COLS[c], sx, coordYTop);
@@ -1755,7 +1751,6 @@ function updateCoordOverlay() {
   for (let r = 0; r < boardSize; r++) {
     const wz = r * STEP_SIZE - GRID_OFFSET;
     const sy = worldZtoScreen(wz);
-    if (sy < -20 || sy > H + 20) continue;
     const isHL = (r === HIGHLIGHT_ROW);
     ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
     const label = String(boardSize - r);
