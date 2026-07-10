@@ -516,12 +516,18 @@ function initThree() {
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   if (is2DMode) {
-    // 2D: top-down, fixed viewport matching the exact grid requirements
+    // 2D: top-down, pan + zoom only — no rotation allowed
     controls.target.set(0, 0, 0);
     controls.enableRotate = false;
-    controls.enablePan    = false;
-    controls.enableZoom   = false;
-    controls.enableDamping  = false;
+    controls.enablePan    = true;
+    controls.enableZoom   = true;
+    controls.enableDamping  = true;
+    controls.dampingFactor  = 0.07;
+    controls.minZoom = 0.5;
+    controls.maxZoom = 12.0;
+    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
+    controls.screenSpacePanning = true;
   } else {
     // 3D: full orbit
     controls.target.set(0, 0, 10);
@@ -1725,12 +1731,12 @@ function updateCoordOverlay() {
                         typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
                         ? moveHistory[currentMoveIndex].r : -1;
 
-  // The dark border center in world coordinates (5.8% of SLAB width)
-  const BORDER_WORLD = 31.086; 
-  const coordYTop = worldZtoScreen(-BORDER_WORLD);
-  const coordYBot = worldZtoScreen(BORDER_WORLD);
-  const numXLeft  = worldXtoScreen(-BORDER_WORLD);
-  const numXRight = worldXtoScreen(BORDER_WORLD);
+  // Fix the coordinate labels to the physical edges of the screen DOM
+  const EDGE_PAD = 14; 
+  const coordYTop = EDGE_PAD;
+  const coordYBot = H - EDGE_PAD;
+  const numXLeft  = EDGE_PAD;
+  const numXRight = W - EDGE_PAD;
 
   const COLS = 'ABCDEFGHJKLMNOPQRST';
 
