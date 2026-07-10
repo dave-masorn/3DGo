@@ -1710,13 +1710,16 @@ function updateCoordOverlay() {
   ctx.clearRect(0, 0, W, H);
 
   const zoom = camera.zoom || 1;
-  const cx = controls.target.x;
-  const cz = controls.target.z;
-  const halfW = (camera.right - camera.left) / (2 * zoom);
-  const halfH = (camera.top  - camera.bottom) / (2 * zoom);
+  // User wants coordinates FIXED to their initial on-screen positions, ignoring pan/zoom!
+  const initialZoom = 1;
+  const initialCx = 0;
+  const initialCz = 0;
+  
+  const halfW = (camera.right - camera.left) / (2 * initialZoom);
+  const halfH = (camera.top  - camera.bottom) / (2 * initialZoom);
 
-  function worldXtoScreen(wx) { return ((wx - (cx - halfW)) / (halfW * 2)) * W; }
-  function worldZtoScreen(wz) { return ((wz - (cz - halfH)) / (halfH * 2)) * H; }
+  function worldXtoScreen(wx) { return ((wx - (initialCx - halfW)) / (halfW * 2)) * W; }
+  function worldZtoScreen(wz) { return ((wz - (initialCz - halfH)) / (halfH * 2)) * H; }
 
   // Font setup (slightly smaller as requested)
   const fontSize = Math.max(10, Math.min(14, Math.round(W / 40)));
@@ -1731,12 +1734,12 @@ function updateCoordOverlay() {
                         typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
                         ? moveHistory[currentMoveIndex].r : -1;
 
-  // Fix the coordinate labels to the physical edges of the screen DOM
-  const EDGE_PAD = 14; 
-  const coordYTop = EDGE_PAD;
-  const coordYBot = H - EDGE_PAD;
-  const numXLeft  = EDGE_PAD;
-  const numXRight = W - EDGE_PAD;
+  // The dark border center in world coordinates (5.8% of SLAB width)
+  const BORDER_WORLD = 31.086; 
+  const coordYTop = worldZtoScreen(-BORDER_WORLD);
+  const coordYBot = worldZtoScreen(BORDER_WORLD);
+  const numXLeft  = worldXtoScreen(-BORDER_WORLD);
+  const numXRight = worldXtoScreen(BORDER_WORLD);
 
   const COLS = 'ABCDEFGHJKLMNOPQRST';
 
