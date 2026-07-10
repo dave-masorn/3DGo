@@ -2371,124 +2371,48 @@ function runDiagnostics() {
       return;
   }
   if (!estResult) return;
-  let aMap = estResult.areaMap;
+
+  const b = estResult.score;
+  const komi = 6.5;
+  const handicap = 0;
   
-  // Calculate continuous influence to find Conflicting areas
-  let data = BoardEstimate.fromBoard(boardState);
-  let deadMap = BoardEstimate.detectDeadStonesHeuristic(data);
-  for (let y = 0; y < data.length; y++) {
-      for (let x = 0; x < data[y].length; x++) {
-          if (deadMap[y][x]) data[y][x] = 0;
-      }
-  }
-  let infMap = BoardEstimate.influenceMap(data, {discrete: false});
+  const bTotalArea = b.area[0];
+  const wTotalArea = b.area[1] + komi + handicap;
   
-  // Flatten maps for easier 1D rendering
-  let flattenedArea = [];
-  let flattenedInf = [];
-  for (let y = 0; y < 19; y++) {
-      for (let x = 0; x < 19; x++) {
-          flattenedArea.push(aMap[y][x]);
-          flattenedInf.push(infMap[y][x]);
-      }
-  }
-
-  const bArea = estResult.score.area[0];
-  const wArea = estResult.score.area[1];
+  const bTotalTerr = b.territory[0] + b.captures[0] + (b.deadStones ? b.deadStones[0] : 0);
+  const wTotalTerr = b.territory[1] + b.captures[1] + (b.deadStones ? b.deadStones[1] : 0) + komi;
   
-  if (document.getElementById('est-b-pts')) document.getElementById('est-b-pts').innerText = bArea;
-  if (document.getElementById('est-w-pts')) document.getElementById('est-w-pts').innerText = wArea;
+  const formatDiff = (blackScore, whiteScore) => {
+      let diff = blackScore - whiteScore;
+      if (diff > 0) return `B+${Number.isInteger(diff) ? diff : diff.toFixed(1)}`;
+      if (diff < 0) return `W+${Number.isInteger(-diff) ? -diff : (-diff).toFixed(1)}`;
+      return 'Draw';
+  };
+  
+  const areaStr = formatDiff(bTotalArea, wTotalArea);
+  const terrStr = formatDiff(bTotalTerr, wTotalTerr);
+  
+  if (document.getElementById('est-b-pill')) document.getElementById('est-b-pill').innerText = `Area [${areaStr}]`;
+  if (document.getElementById('est-w-pill')) document.getElementById('est-w-pill').innerText = `Territory [${terrStr}]`;
 
-  // Draw Defrag Chart & Calculate Stats
-  const dCanvas = document.getElementById('defragChart');
-  if (dCanvas && dCanvas.parentElement) {
-    // Make canvas responsive
-    const containerWidth = dCanvas.parentElement.clientWidth;
-    // Set actual canvas pixel dimensions to match CSS width
-    dCanvas.width = containerWidth;
-    
-    const gap = 1;
-    const cols = 38; 
-    const rows = Math.ceil(361 / cols);
-    
-    // Available width for blocks: containerWidth - padding (2px on each side) - total gaps
-    const availableWidth = containerWidth - 4 - ((cols - 1) * gap);
-    const blockSize = Math.floor(availableWidth / cols);
-    
-    // Adjust height based on block size
-    dCanvas.height = rows * blockSize + (rows - 1) * gap + 4; // +4 for padding
-    
-    const ctx = dCanvas.getContext('2d');
-    ctx.clearRect(0, 0, dCanvas.width, dCanvas.height);
-    
-    let cntB = 0, cntW = 0, cntC = 0, cntU = 0;
-    
-    // First pass: categorize all 361 points
-    let blocks = [];
-    for (let i = 0; i < 361; i++) {
-        let areaVal = flattenedArea[i];
-        let infVal = flattenedInf[i];
-        
-        let type = 'U';
-        if (areaVal === 1) {
-            type = 'B';
-            cntB++;
-        } else if (areaVal === -1) {
-            type = 'W';
-            cntW++;
-        } else if (Math.abs(infVal) > 0.05 && Math.abs(infVal) < 0.8) {
-            type = 'C';
-            cntC++;
-        } else {
-            cntU++;
-        }
-        blocks.push(type);
-    }
-    
-    // Sort blocks: Black -> Conflicting -> White -> Unoccupied
-    const typeOrder = { 'B': 1, 'C': 2, 'W': 3, 'U': 4 };
-    blocks.sort((a, b) => typeOrder[a] - typeOrder[b]);
-
-    // Start drawing at offset to account for CSS padding inside canvas
-    const xOffset = 2;
-    const yOffset = 2;
-    
-    let col = 0;
-    let row = 0;
-    
-    for (let i = 0; i < 361; i++) {
-        let type = blocks[i];
-        let color = '#6b7280'; // Unoccupied (Gray)
-        
-        if (type === 'B') color = '#000000'; // Black
-        else if (type === 'W') color = '#ffffff'; // White
-        else if (type === 'C') color = '#ef4444'; // Conflicting (Red)
-
-        let xPos = xOffset + col * (blockSize + gap);
-        let yPos = yOffset + row * (blockSize + gap);
-        
-        ctx.fillStyle = color;
-        ctx.fillRect(xPos, yPos, blockSize, blockSize);
-        
-        col++;
-        if (col >= cols) {
-            col = 0;
-            row++;
-        }
-    }
-    
-    // Update Stats UI
-    if (document.getElementById('te-cnt-b')) {
-        document.getElementById('te-cnt-b').innerText = cntB;
-        document.getElementById('te-cnt-w').innerText = cntW;
-        document.getElementById('te-cnt-c').innerText = cntC;
-        document.getElementById('te-cnt-u').innerText = cntU;
-        
-        document.getElementById('te-pct-b').innerText = ((cntB / 361) * 100).toFixed(1) + '%';
-        document.getElementById('te-pct-w').innerText = ((cntW / 361) * 100).toFixed(1) + '%';
-        document.getElementById('te-pct-c').innerText = ((cntC / 361) * 100).toFixed(1) + '%';
-        document.getElementById('te-pct-u').innerText = ((cntU / 361) * 100).toFixed(1) + '%';
-    }
+  if (document.getElementById('te-b-area')) {
+      document.getElementById('te-b-area').innerText = b.area[0];
+      document.getElementById('te-w-area').innerText = b.area[1];
+      
+      document.getElementById('te-b-terr').innerText = b.territory[0];
+      document.getElementById('te-w-terr').innerText = b.territory[1];
+      
+      document.getElementById('te-b-capt').innerText = b.captures[0];
+      document.getElementById('te-w-capt').innerText = b.captures[1];
+      
+      document.getElementById('te-b-dead').innerText = b.deadStones ? b.deadStones[0] : '-';
+      document.getElementById('te-w-dead').innerText = b.deadStones ? b.deadStones[1] : '-';
+      
+      document.getElementById('te-w-komi').innerText = komi;
+      document.getElementById('te-w-handi').innerText = handicap;
+      
+      document.getElementById('te-b-tot').innerText = bTotalTerr;
+      document.getElementById('te-w-tot').innerText = wTotalTerr;
   }
 
   // 3. Liberties & Combat Volatility

@@ -1081,11 +1081,14 @@ body {
   }
   .col-right {
     padding: 8px;
-    flex-shrink: 0; /* Keep analytics height */
+    flex: 1; /* Stretch to fill remaining space so there is no empty space below tabs */
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
   }
   .col-right > .widget {
     padding: 12px;
+    flex: 1; /* Stretch widget to fill the column so its background covers empty space */
   }
 
   .mobile-board-borders {

@@ -8,14 +8,14 @@
   <link rel="apple-touch-icon" href="PWA-icon-192.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="analytics.css?v=0.2.054">
+  <link rel="stylesheet" href="analytics.css?v=0.2.055">
   <link rel="stylesheet" href="libs/phosphor-regular.css">
   
 </head>
 <body>
 <div id="version-stamp" style="position: fixed; top: 8px; right: 8px; text-align: right; color: #fbbf24; font-size: 11px; font-family: monospace; z-index: 99999; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px; pointer-events: none; border: 1px solid rgba(251,191,36,0.3);">
-  Deployed Ver.: 0.2.054<br>
-  Last Update: Jul 11, 2026 : 02:38:00
+  Deployed Ver.: 0.2.055<br>
+  Last Update: Jul 11, 2026 : 03:19:00
 </div>
 <div id="debug-error" style="position:fixed; top:0; left:0; right:0; background:red; color:white; z-index:99999; padding:20px; font-family:monospace; display:none; white-space:pre-wrap;"></div>
 <script>
@@ -325,48 +325,54 @@ window.addEventListener('unhandledrejection', function(event) {
           <div class="wr-graph"></div>
         </div>
 
-        <div class="widget territory-widget" id="tab-panel-territory" style="display: none; padding-bottom: 16px;">
-          <div class="wr-header" style="margin-bottom: 12px;">
-            <span style="font-weight:600;">Territory Estimation</span>
-            <div style="font-size: 11px;">
-              <span style="color:#3b82f6; font-weight:600;">B <span id="est-b-pts">0</span></span>
-              <span style="color:var(--text-muted); margin:0 4px;">|</span>
-              <span style="color:white; font-weight:600;">W <span id="est-w-pts">0</span></span>
-            </div>
-          </div>
-          <div id="defrag-container" style="width: 100%; display: flex; justify-content: center; position: relative;">
-              <canvas id="defragChart" style="width: 100%; height: 80px; background: #11141c; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 2px; box-sizing: border-box;"></canvas>
-          </div>
-          
-          <div class="te-legend-container" style="margin-top: 8px; display: flex; flex-direction: column; gap: 12px;">
-              <!-- Legend Row -->
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px; font-size: 11px;">
-                  <div class="te-legend-item"><div class="te-legend-box" style="background:#000000; border:1px solid #374151;"></div><span>Black</span></div>
-                  <div class="te-legend-item"><div class="te-legend-box" style="background:#ffffff;"></div><span>White</span></div>
-                  <div class="te-legend-item"><div class="te-legend-box" style="background:#ef4444;"></div><span>Conflicting</span></div>
-                  <div class="te-legend-item"><div class="te-legend-box" style="background:#6b7280;"></div><span>Unoccupied</span></div>
-              </div>
-              
-              <!-- Stats Row -->
-              <div style="display: flex; justify-content: space-between; text-align: center;">
-                  <div class="te-stat-col" style="flex:1;">
-                      <div class="te-stat-num" id="te-cnt-b">0</div>
-                      <div class="te-stat-pct" id="te-pct-b">0.0%</div>
-                  </div>
-                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
-                      <div class="te-stat-num" id="te-cnt-w">0</div>
-                      <div class="te-stat-pct" id="te-pct-w">0.0%</div>
-                  </div>
-                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
-                      <div class="te-stat-num" id="te-cnt-c">0</div>
-                      <div class="te-stat-pct" id="te-pct-c">0.0%</div>
-                  </div>
-                  <div class="te-stat-col" style="flex:1; border-left: 1px solid rgba(255,255,255,0.05);">
-                      <div class="te-stat-num" id="te-cnt-u">0</div>
-                      <div class="te-stat-pct" id="te-pct-u">0.0%</div>
-                  </div>
+        <div class="widget territory-widget" id="tab-panel-territory" style="display: none;">
+          <div style="font-weight: 600; font-size: 14px; text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+              <span style="color: white;">Score Estimate:</span>
+              <div style="display: flex; gap: 8px;">
+                  <span id="est-b-pill" style="color: #67e8f9; padding: 2px 8px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(103, 232, 249, 0.3);">Area [?]</span>
+                  <span id="est-w-pill" style="color: #6ee7b7; padding: 2px 8px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(110, 231, 183, 0.3);">Territory [?]</span>
               </div>
           </div>
+          <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; margin-top: 8px;">
+              <thead>
+                  <tr style="color: #fbbf24; font-size: 10px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                      <th style="padding-bottom: 8px;"></th>
+                      <th style="padding-bottom: 8px;">AREA</th>
+                      <th style="padding-bottom: 8px;">TERR</th>
+                      <th style="padding-bottom: 8px;">CAPT</th>
+                      <th style="padding-bottom: 8px;">DEAD</th>
+                      <th style="padding-bottom: 8px;">KOMI</th>
+                      <th style="padding-bottom: 8px;">HANDI</th>
+                      <th style="padding-bottom: 8px;">TOT</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                      <td style="padding: 12px 0;">
+                          <div style="width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #555, #000); box-shadow: 1px 1px 3px rgba(0,0,0,0.4); margin: 0 auto;"></div>
+                      </td>
+                      <td style="font-weight: 700; color: white;" id="te-b-area">-</td>
+                      <td style="color: #9ca3af;" id="te-b-terr">-</td>
+                      <td style="color: #9ca3af;" id="te-b-capt">-</td>
+                      <td style="color: #9ca3af;" id="te-b-dead">-</td>
+                      <td style="color: #9ca3af;">-</td>
+                      <td style="color: #9ca3af;">-</td>
+                      <td style="font-weight: 700; color: white;" id="te-b-tot">-</td>
+                  </tr>
+                  <tr>
+                      <td style="padding: 12px 0;">
+                          <div style="width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #fff, #ddd); box-shadow: 1px 1px 3px rgba(0,0,0,0.3); margin: 0 auto;"></div>
+                      </td>
+                      <td style="font-weight: 700; color: white;" id="te-w-area">-</td>
+                      <td style="color: #9ca3af;" id="te-w-terr">-</td>
+                      <td style="color: #9ca3af;" id="te-w-capt">-</td>
+                      <td style="color: #9ca3af;" id="te-w-dead">-</td>
+                      <td style="color: #9ca3af;" id="te-w-komi">0</td>
+                      <td style="color: #9ca3af;" id="te-w-handi">0</td>
+                      <td style="font-weight: 700; color: white;" id="te-w-tot">-</td>
+                  </tr>
+              </tbody>
+          </table>
         </div>
 
         <!-- NEW BOTTOM TAB BAR -->
@@ -404,7 +410,7 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <!-- Scripts -->
 <script defer src="libs/three.min.js"></script>
-<script defer src="libs/OrbitControls.js?v=0.2.054"></script>
+<script defer src="libs/OrbitControls.js?v=0.2.055"></script>
 <script defer src="libs/wasm_b64.js"></script>
 <script defer src="libs/deadstones.bundle.js"></script>
 <script defer src="libs/sgf-parser.js"></script>
@@ -413,7 +419,7 @@ window.addEventListener('unhandledrejection', function(event) {
 <script defer src="libs/liberties.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
 <script defer src="libs/ai-bmgp.js"></script>
-<script defer src="app.js?v=0.2.054"></script>
+<script defer src="app.js?v=0.2.055"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
