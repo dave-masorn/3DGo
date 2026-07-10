@@ -727,7 +727,9 @@ function initThree() {
     if (is2DMode && camera.isOrthographicCamera) {
       const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
       const aspect = w / h;
-      const fs = SLAB_W_EST * (aspect < 1 ? 1.0 : 1.0); // Exact fit for 2D fixed view
+      let fs = SLAB_W_EST;
+      if (aspect < 1) fs = SLAB_W_EST / aspect;
+      fs *= 1.02; // Small margin
       camera.left   = -fs * aspect / 2;
       camera.right  =  fs * aspect / 2;
       camera.top    =  fs / 2;
@@ -911,7 +913,36 @@ function _generateBoardTexture2D() {
       ctx.fill();
     });
 
-    // Coordinates are now drawn externally on the fixed overlay layer
+    // ── 6. Coordinate labels in the dark border strip ──
+    if (showCoords) {
+      const fontSize = Math.round(STEP_PX * 0.45);  // slightly smaller font size as requested
+      ctx.font = `600 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
+      ctx.textBaseline = 'middle';
+
+      const COLS = 'ABCDEFGHJKLMNOPQRST';
+      const stripCenter = BORDER_PX * 0.50;      // centre of dark strip
+      const coordYTop = stripCenter;              // letters above board
+      const coordYBot = S - stripCenter;          // letters below board
+      const numXLeft  = stripCenter;              // numbers to left of board
+      const numXRight = S - stripCenter;          // numbers to right of board
+
+      // Column letters — top and bottom
+      ctx.textAlign = 'center';
+      for (let i = 0; i < GRID_LINES; i++) {
+        ctx.fillStyle = (i === highlightC) ? '#4ade80' : '#cccccc';  // green for current col
+        ctx.fillText(COLS[i], gp(i), coordYTop);
+        ctx.fillText(COLS[i], gp(i), coordYBot);
+      }
+
+      // Row numbers — left and right (19 at top, 1 at bottom)
+      ctx.textAlign = 'center';
+      for (let i = 0; i < GRID_LINES; i++) {
+        ctx.fillStyle = (i === highlightR) ? '#4ade80' : '#cccccc';  // green for current row
+        const label = String(GRID_LINES - i);
+        ctx.fillText(label, numXLeft,  gp(i));
+        ctx.fillText(label, numXRight, gp(i));
+      }
+    }
   }
 
 
@@ -1431,7 +1462,9 @@ function animate() {
             // Recompute ortho frustum on resize
             const SLAB_W_EST = BOARD_UNITS + STEP_SIZE * 2.0;
             const aspect = container.clientWidth / container.clientHeight;
-            const fs = SLAB_W_EST * (aspect < 1 ? 1.0 : 1.0); // Exact fit
+            let fs = SLAB_W_EST;
+            if (aspect < 1) fs = SLAB_W_EST / aspect;
+            fs *= 1.02; // Small margin
             camera.left   = -fs * aspect / 2;
             camera.right  =  fs * aspect / 2;
             camera.top    =  fs / 2;
@@ -1678,91 +1711,6 @@ function animate() {
 
   // No CSS DOM projection needed for true 3D meshes
 
-  renderer.render(scene, camera);
-
-  // Quarter-based zoom coordinate overlay
-  if (is2DMode && showCoords) updateCoordOverlay();
-}
-
-// ─── Fixed Coordinate Overlay ───────────────────────────────────────────────
-// In 2D mode, the board is perfectly static (no pan/zoom). This overlay draws
-// the coordinates crisply in the native DOM resolution on top of the dark
-// border, perfectly aligned with the projected 3D grid lines.
-let _overlayCanvas = null, _overlayCtx = null;
-function updateCoordOverlay() {
-  if (!camera || !camera.isOrthographicCamera) return;
-
-  // Lazy-init
-  if (!_overlayCanvas) {
-    _overlayCanvas = document.getElementById('coord-overlay');
-    if (!_overlayCanvas) return;
-    _overlayCtx = _overlayCanvas.getContext('2d');
-  }
-  const oc = _overlayCanvas;
-  const ctx = _overlayCtx;
-
-  const container = document.getElementById('three-container');
-  if (!container) return;
-  const W = container.clientWidth;
-  const H = container.clientHeight;
-  if (oc.width !== W || oc.height !== H) { oc.width = W; oc.height = H; }
-
-  ctx.clearRect(0, 0, W, H);
-
-  const zoom = camera.zoom || 1;
-  // User wants coordinates FIXED to their initial on-screen positions, ignoring pan/zoom!
-  const initialZoom = 1;
-  const initialCx = 0;
-  const initialCz = 0;
-  
-  const halfW = (camera.right - camera.left) / (2 * initialZoom);
-  const halfH = (camera.top  - camera.bottom) / (2 * initialZoom);
-
-  function worldXtoScreen(wx) { return ((wx - (initialCx - halfW)) / (halfW * 2)) * W; }
-  function worldZtoScreen(wz) { return ((wz - (initialCz - halfH)) / (halfH * 2)) * H; }
-
-  // Font setup (slightly smaller as requested)
-  const fontSize = Math.max(10, Math.min(14, Math.round(W / 40)));
-  ctx.font = `500 ${fontSize}px "Inter", "SF Pro Display", sans-serif`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-
-  const HIGHLIGHT_COL = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
-                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
-                        ? moveHistory[currentMoveIndex].c : -1;
-  const HIGHLIGHT_ROW = typeof currentMoveIndex !== 'undefined' && currentMoveIndex >= 0 &&
-                        typeof moveHistory !== 'undefined' && moveHistory[currentMoveIndex]
-                        ? moveHistory[currentMoveIndex].r : -1;
-
-  // The dark border center in world coordinates (5.8% of SLAB width)
-  const BORDER_WORLD = 31.086; 
-  const coordYTop = worldZtoScreen(-BORDER_WORLD);
-  const coordYBot = worldZtoScreen(BORDER_WORLD);
-  const numXLeft  = worldXtoScreen(-BORDER_WORLD);
-  const numXRight = worldXtoScreen(BORDER_WORLD);
-
-  const COLS = 'ABCDEFGHJKLMNOPQRST';
-
-  // Columns
-  for (let c = 0; c < boardSize; c++) {
-    const wx = c * STEP_SIZE - GRID_OFFSET;
-    const sx = worldXtoScreen(wx);
-    const isHL = (c === HIGHLIGHT_COL);
-    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
-    ctx.fillText(COLS[c], sx, coordYTop);
-    ctx.fillText(COLS[c], sx, coordYBot);
-  }
-
-  // Rows
-  for (let r = 0; r < boardSize; r++) {
-    const wz = r * STEP_SIZE - GRID_OFFSET;
-    const sy = worldZtoScreen(wz);
-    const isHL = (r === HIGHLIGHT_ROW);
-    ctx.fillStyle = isHL ? '#4ade80' : '#cccccc';
-    const label = String(boardSize - r);
-    ctx.fillText(label, numXLeft, sy);
-    ctx.fillText(label, numXRight, sy);
-  }
 }
 
 // ---- Game Logic ----
