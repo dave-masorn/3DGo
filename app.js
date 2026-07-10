@@ -448,6 +448,11 @@ let gridLines, waveTime = 0; // for breathing wave effect
 function initThree() {
   const container = document.getElementById('three-container');
 
+  // FORCE square container for mobile layouts that ignore CSS aspect-ratio
+  if (window.innerWidth < 1024) {
+    container.style.height = container.clientWidth + 'px';
+  }
+
   scene = new THREE.Scene();
   
   // Lighting — Key, Fill, Rim
@@ -723,6 +728,14 @@ function initThree() {
 
   window.addEventListener('resize', () => {
     if (!container || !renderer || !camera) return;
+    
+    // FORCE square container for mobile layouts that ignore CSS aspect-ratio
+    if (window.innerWidth < 1024) {
+      container.style.height = container.clientWidth + 'px';
+    } else {
+      container.style.height = ''; // Let CSS handle it on desktop
+    }
+
     const w = container.clientWidth;
     const h = container.clientHeight;
     renderer.setSize(w, h, false);
@@ -1683,6 +1696,8 @@ function animate() {
   }
 
   // No CSS DOM projection needed for true 3D meshes
+
+
   renderer.render(scene, camera);
 
   // Clamped coordinate overlay that stays fixed on screen but aligns to grid
