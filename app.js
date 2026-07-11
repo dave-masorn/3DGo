@@ -2322,6 +2322,37 @@ function renderStones3D() {
 
 // ---- Analytics & Diagnostics ----
 
+let territoryGroup = null;
+function updateTerritoryOverlay(areaMap) {
+    if (territoryGroup) {
+        scene.remove(territoryGroup);
+        territoryGroup = null;
+    }
+    if (!areaMap) return;
+    
+    const panel = document.getElementById('tab-panel-territory');
+    if (!panel || panel.style.display === 'none') return;
+    
+    territoryGroup = new THREE.Group();
+    const boxSize = STEP_SIZE * 0.35;
+    const geom = new THREE.PlaneGeometry(boxSize, boxSize);
+    geom.rotateX(-Math.PI / 2); // Make it flat on the board
+    const bMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.85, depthWrite: false });
+    const wMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthWrite: false });
+    
+    for (let r = 0; r < 19; r++) {
+        for (let c = 0; c < 19; c++) {
+            const val = areaMap[r][c];
+            if (val === 1 || val === -1) {
+                const mesh = new THREE.Mesh(geom, val === 1 ? bMat : wMat);
+                mesh.position.set(c * STEP_SIZE - GRID_OFFSET, 0.2, r * STEP_SIZE - GRID_OFFSET);
+                territoryGroup.add(mesh);
+            }
+        }
+    }
+    scene.add(territoryGroup);
+}
+
 function runDiagnostics() {
   // 1. Basic Stats Update
   if (document.getElementById('board-move-num')) {
@@ -2414,6 +2445,9 @@ function runDiagnostics() {
       document.getElementById('te-b-tot').innerText = bTotalTerr;
       document.getElementById('te-w-tot').innerText = wTotalTerr;
   }
+  
+  window.lastAreaMap = estResult.areaMap;
+  updateTerritoryOverlay(window.lastAreaMap);
 
   // 3. Liberties & Combat Volatility
   const libMap = Liberties.computeLibertyMap(boardState);
@@ -2969,6 +3003,7 @@ window.switchTab = function(tabName) {
     if (tabName === 'volatility') {
         document.getElementById('tab-panel-volatility').style.display = 'block';
         if(tabs[0]) tabs[0].classList.add('active'); 
+        updateTerritoryOverlay(null);
     } else if (tabName === 'territory') {
         document.getElementById('tab-panel-territory').style.display = 'block';
         if(tabs[1]) tabs[1].classList.add('active');
