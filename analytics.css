@@ -696,6 +696,9 @@ body {
   justify-content: center;
   gap: 16px;
   margin-top: 8px;
+  position: relative;
+  z-index: 99;
+  pointer-events: auto;
 }
 .b-ctrl-btn {
   background: var(--panel-bg);

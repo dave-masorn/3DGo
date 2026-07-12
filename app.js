@@ -2952,15 +2952,29 @@ if (kpiEl) {
     kpiEl.addEventListener('touchend', handleDblTapClick, { passive: false });
 }
 
-document.getElementById('btn-replay-first').onclick = () => { if(playInterval) togglePlay(); goToMove(-1); };
-document.getElementById('btn-replay-back5').onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 5)); };
-document.getElementById('btn-replay-prev').onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 1)); };
-document.getElementById('btn-replay-next').onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 1)); };
-document.getElementById('btn-replay-fwd5').onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 5)); };
-document.getElementById('btn-replay-last').onclick = () => { if(playInterval) togglePlay(); goToMove(moveHistory.length - 1); };
+function attachReplayControls() {
+    const btnFirst = document.getElementById('btn-replay-first');
+    if (btnFirst) btnFirst.onclick = () => { if(playInterval) togglePlay(); goToMove(-1); };
+    
+    const btnBack5 = document.getElementById('btn-replay-back5');
+    if (btnBack5) btnBack5.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 5)); };
+    
+    const btnPrev = document.getElementById('btn-replay-prev');
+    if (btnPrev) btnPrev.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 1)); };
+    
+    const btnNext = document.getElementById('btn-replay-next');
+    if (btnNext) btnNext.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 1)); };
+    
+    const btnFwd5 = document.getElementById('btn-replay-fwd5');
+    if (btnFwd5) btnFwd5.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 5)); };
+    
+    const btnLast = document.getElementById('btn-replay-last');
+    if (btnLast) btnLast.onclick = () => { if(playInterval) togglePlay(); goToMove(moveHistory.length - 1); };
+}
 
 // Boot
 function bootApp() {
+    attachReplayControls();
     initThree();
     initBoard();
     setupBoardClick();
