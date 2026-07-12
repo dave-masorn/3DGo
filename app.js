@@ -754,7 +754,7 @@ function initThree() {
       camera.aspect = w / h;
       updateCameraFov();
     }
-    if(typeof updateDiagnostics === 'function') updateDiagnostics();
+    if(typeof runDiagnostics === 'function') runDiagnostics();
   });
 
   // Right-click toggle-drag to pan (following demo/right-click-move-obj.html)
@@ -3007,7 +3007,7 @@ window.switchTab = function(tabName) {
     } else if (tabName === 'territory') {
         document.getElementById('tab-panel-territory').style.display = 'block';
         if(tabs[1]) tabs[1].classList.add('active');
-        if (typeof updateDiagnostics === 'function') updateDiagnostics();
+        if (typeof runDiagnostics === 'function') runDiagnostics();
     }
 };
 
