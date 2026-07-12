@@ -1190,13 +1190,21 @@ body {
     height: 170px !important;
     overflow: hidden !important;
     padding: 0 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
   
   .col-right > .widget { 
     padding: 4px 8px !important; 
     margin-bottom: 0 !important;
-    flex: 1 !important;
-    height: auto !important;
+    flex: 0 0 auto !important;
+  }
+  
+  .col-right > .winrate-widget,
+  .col-right > .territory-widget {
+    flex: 1 !important; 
+    min-height: 0 !important; 
+    overflow-y: auto !important; 
   }
   
   /* Territory Widget Compression */
@@ -1215,9 +1223,11 @@ body {
     padding: 4px !important;
     margin-top: 6px !important;
     gap: 3px !important;
+    flex-shrink: 0 !important;
   }
   /* On mobile, tabs stay exactly the same compact shape — never taller */
   .bottom-tab {
+    flex-shrink: 0 !important;
     height: 56px !important;
     min-height: 56px !important;
     max-height: 56px !important;
