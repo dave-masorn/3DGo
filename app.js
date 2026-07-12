@@ -2954,22 +2954,31 @@ if (kpiEl) {
 
 function attachReplayControls() {
     const btnFirst = document.getElementById('btn-replay-first');
-    if (btnFirst) btnFirst.onclick = () => { if(playInterval) togglePlay(); goToMove(-1); };
-    
     const btnBack5 = document.getElementById('btn-replay-back5');
-    if (btnBack5) btnBack5.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 5)); };
-    
     const btnPrev = document.getElementById('btn-replay-prev');
-    if (btnPrev) btnPrev.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 1)); };
-    
     const btnNext = document.getElementById('btn-replay-next');
-    if (btnNext) btnNext.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 1)); };
-    
     const btnFwd5 = document.getElementById('btn-replay-fwd5');
-    if (btnFwd5) btnFwd5.onclick = () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 5)); };
-    
     const btnLast = document.getElementById('btn-replay-last');
-    if (btnLast) btnLast.onclick = () => { if(playInterval) togglePlay(); goToMove(moveHistory.length - 1); };
+    const btnPlay = document.getElementById('btn-play');
+
+    function bind(el, fn) {
+        if (!el) return;
+        el.onclick = fn;
+        el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            fn(e);
+        });
+    }
+
+    bind(btnFirst, () => { if(playInterval) togglePlay(); goToMove(-1); });
+    bind(btnBack5, () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 5)); });
+    bind(btnPrev, () => { if(playInterval) togglePlay(); goToMove(Math.max(-1, currentMoveIndex - 1)); });
+    bind(btnNext, () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 1)); });
+    bind(btnFwd5, () => { if(playInterval) togglePlay(); goToMove(Math.min(moveHistory.length - 1, currentMoveIndex + 5)); });
+    bind(btnLast, () => { if(playInterval) togglePlay(); goToMove(moveHistory.length - 1); });
+    
+    // Also re-bind Play just in case inline onclick fails on mobile
+    bind(btnPlay, () => togglePlay());
 }
 
 // Boot
