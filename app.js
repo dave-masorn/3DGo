@@ -2963,11 +2963,18 @@ function attachReplayControls() {
 
     function bind(el, fn) {
         if (!el) return;
-        el.onclick = fn;
-        el.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
+        el.removeAttribute('onclick'); // Remove inline onclick to prevent double firing
+        let lastFired = 0;
+        const wrappedFn = (e) => {
+            if (e && e.cancelable) e.preventDefault();
+            const now = Date.now();
+            if (now - lastFired < 300) return; // Debounce double-taps
+            lastFired = now;
             fn(e);
-        });
+        };
+        // Use both click and touchstart for max compatibility across devices
+        el.addEventListener('click', wrappedFn);
+        el.addEventListener('touchstart', wrappedFn, { passive: false });
     }
 
     bind(btnFirst, () => { if(playInterval) togglePlay(); goToMove(-1); });
